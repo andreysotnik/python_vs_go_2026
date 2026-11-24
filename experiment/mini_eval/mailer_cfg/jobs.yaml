@@ -1,0 +1,27 @@
+jobs:
+  - name: daily-report
+    schedule: "0 9 * * 1-5"
+    timezone: "Europe/Moscow"
+    to: ["team@example.com", "boss@example.com"]
+    cc: []
+    subject: "Ежедневный отчёт за {{date}}"
+    body: |
+      Привет! Отчёт за {{date}} во вложении. Задача: {{job}}.
+    html: false
+    attachments: ["/Users/andrey.sotnik/Projects/temp/claude_temp/go_vs_python/experiment/mini_eval/mailer_cfg/report.pdf"]
+  - name: utc-quarter
+    schedule: "*/15 * * * *"
+    timezone: "UTC"
+    to: ["ops@example.com"]
+    cc: ["audit@example.com"]
+    subject: "Пульс {{datetime}}"
+    body: "Проверка связи"
+    html: false
+  - name: novosibirsk-morning
+    schedule: "0 9 * * *"
+    timezone: "Asia/Novosibirsk"
+    to: ["nsk@example.com"]
+    cc: []
+    subject: "Доброе утро, Новосибирск"
+    body: "Не должно отправиться в 09:00 МСК"
+    html: false

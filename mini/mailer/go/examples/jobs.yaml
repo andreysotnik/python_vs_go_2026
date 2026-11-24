@@ -1,0 +1,23 @@
+jobs:
+  - name: daily-report
+    schedule: "0 9 * * 1-5"        # cron, 5 полей: в 09:00 по будням
+    timezone: "Europe/Moscow"
+    to: ["team@example.com", "boss@example.com"]
+    cc: []
+    subject: "Ежедневный отчёт за {{date}}"
+    body: |
+      Привет! Отчёт за {{date}} во вложении.
+      Задача: {{job}}, слот: {{datetime}}.
+    html: false
+    attachments: ["./files/report.pdf"]   # относительно каталога jobs.yaml
+
+  - name: weekly-digest
+    schedule: "30 10 * * 1"        # понедельник 10:30
+    timezone: "Asia/Yekaterinburg"
+    to: ["Команда <all@example.com>"]
+    cc: ["archive@example.com"]
+    subject: "Недельный дайджест ({{date}})"
+    body: |
+      <h1>Дайджест за неделю</h1>
+      <p>Сформирован {{datetime}}.</p>
+    html: true

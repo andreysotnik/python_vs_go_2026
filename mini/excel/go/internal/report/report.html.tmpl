@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Отчёт по продажам</title>
+<style>
+  :root { --fg:#222; --muted:#666; --accent:#2b6cb0; --bg:#f6f7f9; --card:#fff; --line:#e3e6ea; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color:var(--fg); background:var(--bg); }
+  main { max-width:1180px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { margin:0 0 4px; font-size:28px; }
+  h2 { margin:32px 0 12px; font-size:20px; }
+  .meta { color:var(--muted); margin-bottom:20px; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .kpi .label { color:var(--muted); font-size:13px; }
+  .kpi .value { font-size:22px; font-weight:600; margin-top:4px; font-variant-numeric: tabular-nums; }
+  figure { margin:0 0 20px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px; }
+  figure img { width:100%; height:auto; display:block; }
+  figcaption { color:var(--muted); font-size:13px; margin-top:6px; }
+  table { border-collapse:collapse; width:100%; background:var(--card); border:1px solid var(--line); }
+  th, td { padding:8px 12px; border-bottom:1px solid var(--line); text-align:left; }
+  td.num, th.num { text-align:right; font-variant-numeric: tabular-nums; white-space:nowrap; }
+  th { background:#eef1f5; font-weight:600; }
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(420px, 1fr)); gap:20px; }
+  .table-wrap { overflow-x:auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Отчёт по продажам</h1>
+  <div class="meta">Источник: {{.Source}} · сформирован {{.Generated}}</div>
+
+  <section class="kpis">
+    <div class="kpi"><div class="label">Выручка за период</div><div class="value">{{money .Summary.TotalRevenue}}</div></div>
+    <div class="kpi"><div class="label">План за период</div><div class="value">{{money .TotalPlan}}</div></div>
+    <div class="kpi"><div class="label">Выполнение плана</div><div class="value">{{pct .TotalPct}}</div></div>
+    <div class="kpi"><div class="label">Валидных строк</div><div class="value">{{num .Summary.ValidRows}}</div></div>
+    <div class="kpi"><div class="label">Пропущено строк</div><div class="value">{{num .Summary.SkippedRows}}</div></div>
+    <div class="kpi"><div class="label">Лучший месяц / регион</div><div class="value">{{.BestMonth}} · {{.BestRegion}}</div></div>
+  </section>
+
+  <h2>Графики</h2>
+  {{range .Charts}}
+  <figure>
+    <img src="{{.Data}}" alt="{{.Title}}">
+    <figcaption>{{.Title}} ({{.File}})</figcaption>
+  </figure>
+  {{end}}
+
+  <div class="grid2">
+    <section>
+      <h2>План / факт по регионам</h2>
+      <div class="table-wrap"><table>
+        <tr><th>Регион</th><th class="num">Факт</th><th class="num">План</th><th class="num">Выполнение</th></tr>
+        {{range .Summary.PlanVsFact}}
+        <tr><td>{{.Region}}</td><td class="num">{{money .Fact}}</td><td class="num">{{money .Target}}</td><td class="num">{{pct .CompletionPct}}</td></tr>
+        {{end}}
+      </table></div>
+    </section>
+    <section>
+      <h2>Выручка по месяцам</h2>
+      <div class="table-wrap"><table>
+        <tr><th>Месяц</th><th class="num">Выручка</th></tr>
+        {{range $m, $v := .Summary.RevenueByMonth}}
+        <tr><td>{{$m}}</td><td class="num">{{money $v}}</td></tr>
+        {{end}}
+      </table></div>
+    </section>
+    <section>
+      <h2>Топ товаров</h2>
+      <div class="table-wrap"><table>
+        <tr><th>Товар</th><th class="num">Выручка</th><th class="num">Кол-во</th></tr>
+        {{range .Summary.TopProducts}}
+        <tr><td>{{.Product}}</td><td class="num">{{money .Revenue}}</td><td class="num">{{num .Quantity}}</td></tr>
+        {{end}}
+      </table></div>
+    </section>
+    <section>
+      <h2>Пропущенные строки</h2>
+      <div class="table-wrap"><table>
+        <tr><th>Причина</th><th class="num">Строк</th></tr>
+        {{range .SkipReasons}}
+        <tr><td>{{reason .Reason}}</td><td class="num">{{num .Count}}</td></tr>
+        {{else}}
+        <tr><td colspan="2">Нет</td></tr>
+        {{end}}
+      </table></div>
+      <p class="meta">Подробности с номерами строк — в файле skipped.csv.</p>
+    </section>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,651 @@
+openapi: 3.1.0
+info:
+  title: World Library API
+  version: 1.0.0
+  summary: Catalog of all books and authors of the world.
+  description: |
+    REST API of the World Library catalog.
+
+    * **Pagination** is keyset-only: pass `next_cursor` from the previous page as `cursor`.
+      Cursors are opaque and bound to the `sort` they were issued for. There is no `offset`.
+    * **Totals** are never computed with `COUNT(*)`; with `include_total=true` the planner's
+      estimate is returned and `total_is_estimate` is `true`.
+    * **Identifiers** are 63-bit snowflake ids serialized as strings.
+    * **Authentication** (simplified): mutating requests must carry `X-User-Id` of an existing user.
+    * **Optimistic locking**: `PUT`/`PATCH` require `If-Match: "<version>"` (or `version` in the body);
+      a stale version yields `409`, a missing one `428`. `DELETE` accepts an optional `If-Match`.
+    * **Errors** use RFC 7807 `application/problem+json`. `400` = malformed request (query parameters,
+      cursor, JSON syntax/types, unknown fields), `422` = well-formed entity that violates business rules.
+servers:
+  - url: http://localhost:28002
+    description: docker compose
+tags:
+  - name: books
+  - name: authors
+  - name: search
+  - name: users
+  - name: ops
+paths:
+  /api/v1/books:
+    get:
+      tags: [books]
+      operationId: listBooks
+      summary: List / filter / search books (keyset pagination)
+      parameters:
+        - {name: title, in: query, description: "Fuzzy substring match on title/original_title (trigram, accent-insensitive, min 3 chars)", schema: {type: string, minLength: 3, maxLength: 256}}
+        - {name: author, in: query, description: "Fuzzy substring match on author name (min 3 chars; first 1000 matching authors)", schema: {type: string, minLength: 3}}
+        - {name: author_id, in: query, schema: {$ref: '#/components/schemas/Id'}}
+        - {name: isbn, in: query, description: ISBN-10 or ISBN-13 (hyphens allowed), schema: {type: string}, example: 978-0-306-40615-7}
+        - {name: language, in: query, description: ISO 639 code, schema: {type: string, pattern: '^[A-Za-z]{2,3}$'}, example: ru}
+        - {name: year_from, in: query, schema: {type: integer, minimum: -3000, maximum: 2100}}
+        - {name: year_to, in: query, schema: {type: integer, minimum: -3000, maximum: 2100}}
+        - {name: publisher, in: query, description: Exact publisher name, schema: {type: string}}
+        - {name: genre, in: query, description: Genre slug, schema: {type: string}, example: fantasy}
+        - {name: created_by, in: query, schema: {$ref: '#/components/schemas/Id'}}
+        - {name: created_from, in: query, description: "Inclusive lower bound (RFC 3339 or YYYY-MM-DD)", schema: {type: string}, example: '2025-01-01'}
+        - {name: created_to, in: query, description: "Exclusive upper bound (RFC 3339 or YYYY-MM-DD)", schema: {type: string}}
+        - {name: q, in: query, description: "Full-text query (websearch syntax: quotes, OR, -exclude), 'simple'+unaccent config", schema: {type: string}}
+        - name: sort
+          in: query
+          description: Sort field (prefix `-` for descending). NULL values always go last. `id` is the implicit tie-breaker.
+          schema: {type: string, enum: [title, -title, publication_year, -publication_year, created_at, -created_at], default: -created_at}
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/IncludeTotal'
+      responses:
+        '200':
+          description: A page of books
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/BookPage'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '504': {$ref: '#/components/responses/Timeout'}
+    post:
+      tags: [books]
+      operationId: createBook
+      summary: Create a book
+      parameters: [{$ref: '#/components/parameters/UserId'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/BookInput'}
+            example:
+              title: Война и мир
+              original_title: War and Peace
+              language_code: ru
+              isbn_13: '9780306406157'
+              publication_year: 1869
+              genres: [classics, fiction]
+              authors: [{author_id: '910519675262078976', role: author}]
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location: {schema: {type: string}}
+            ETag: {$ref: '#/components/headers/ETag'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Book'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+  /api/v1/books/{id}:
+    parameters: [{$ref: '#/components/parameters/PathId'}]
+    get:
+      tags: [books]
+      operationId: getBook
+      summary: Book card with authors and audit fields
+      responses:
+        '200':
+          description: OK
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Book'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      tags: [books]
+      operationId: replaceBook
+      summary: Replace a book (omitted fields are cleared, omitted authors removed)
+      parameters: [{$ref: '#/components/parameters/UserId'}, {$ref: '#/components/parameters/IfMatch'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/BookInput'}
+      responses: &bookWriteResponses
+        '200':
+          description: Updated
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Book'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '428': {$ref: '#/components/responses/PreconditionRequired'}
+    patch:
+      tags: [books]
+      operationId: patchBook
+      summary: Partially update a book (JSON merge patch semantics; null clears a field)
+      parameters: [{$ref: '#/components/parameters/UserId'}, {$ref: '#/components/parameters/IfMatch'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/BookInput'}
+          application/merge-patch+json:
+            schema: {$ref: '#/components/schemas/BookInput'}
+      responses: *bookWriteResponses
+    delete:
+      tags: [books]
+      operationId: deleteBook
+      summary: Soft-delete a book (its ISBN is released)
+      parameters: [{$ref: '#/components/parameters/UserId'}, {$ref: '#/components/parameters/IfMatchOptional'}]
+      responses:
+        '204': {description: Deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/v1/books/{id}/history:
+    parameters: [{$ref: '#/components/parameters/PathId'}]
+    get:
+      tags: [books]
+      operationId: bookHistory
+      summary: Change history (audit log), newest first; available for soft-deleted books too
+      parameters: [{$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/Cursor'}]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuditPage'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/authors:
+    get:
+      tags: [authors]
+      operationId: listAuthors
+      summary: List / filter / search authors (keyset pagination)
+      parameters:
+        - {name: name, in: query, description: "Fuzzy substring on full_name/original_name (min 3 chars)", schema: {type: string, minLength: 3}}
+        - {name: country, in: query, description: ISO 3166-1 alpha-2, schema: {type: string, pattern: '^[A-Za-z]{2}$'}}
+        - {name: born_from, in: query, schema: {type: string, format: date}}
+        - {name: born_to, in: query, schema: {type: string, format: date}}
+        - {name: q, in: query, description: Full-text query, schema: {type: string}}
+        - name: sort
+          in: query
+          schema: {type: string, enum: [full_name, -full_name, birth_date, -birth_date, created_at, -created_at], default: -created_at}
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/IncludeTotal'
+      responses:
+        '200':
+          description: A page of authors
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthorPage'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+    post:
+      tags: [authors]
+      operationId: createAuthor
+      summary: Create an author
+      parameters: [{$ref: '#/components/parameters/UserId'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthorInput'}
+            example: {full_name: Lev Tolstoy, original_name: Лев Николаевич Толстой, birth_date: '1828-09-09', death_date: '1910-11-20', country_code: RU, external_ids: {wikidata: Q7243}}
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location: {schema: {type: string}}
+            ETag: {$ref: '#/components/headers/ETag'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Author'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+  /api/v1/authors/{id}:
+    parameters: [{$ref: '#/components/parameters/PathId'}]
+    get:
+      tags: [authors]
+      operationId: getAuthor
+      summary: Author card with audit fields
+      responses:
+        '200':
+          description: OK
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Author'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      tags: [authors]
+      operationId: replaceAuthor
+      summary: Replace an author
+      parameters: [{$ref: '#/components/parameters/UserId'}, {$ref: '#/components/parameters/IfMatch'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthorInput'}
+      responses: &authorWriteResponses
+        '200':
+          description: Updated
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Author'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '428': {$ref: '#/components/responses/PreconditionRequired'}
+    patch:
+      tags: [authors]
+      operationId: patchAuthor
+      summary: Partially update an author (merge patch)
+      parameters: [{$ref: '#/components/parameters/UserId'}, {$ref: '#/components/parameters/IfMatch'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthorInput'}
+      responses: *authorWriteResponses
+    delete:
+      tags: [authors]
+      operationId: deleteAuthor
+      summary: Soft-delete an author
+      parameters: [{$ref: '#/components/parameters/UserId'}, {$ref: '#/components/parameters/IfMatchOptional'}]
+      responses:
+        '204': {description: Deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/v1/authors/{id}/books:
+    parameters: [{$ref: '#/components/parameters/PathId'}]
+    get:
+      tags: [authors]
+      operationId: authorBooks
+      summary: Books of an author (keyset by book id, i.e. roughly by creation time)
+      parameters: [{$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/Cursor'}]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthorBookPage'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/authors/{id}/history:
+    parameters: [{$ref: '#/components/parameters/PathId'}]
+    get:
+      tags: [authors]
+      operationId: authorHistory
+      summary: Change history of an author
+      parameters: [{$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/Cursor'}]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuditPage'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/search:
+    get:
+      tags: [search]
+      operationId: search
+      summary: Relevance search over books and authors
+      description: |
+        rank = ts_rank(full-text) + word_similarity(trigram). Candidates match either the full-text query
+        or the trigram word similarity (typo tolerant). Ordered by (rank DESC, id DESC), keyset-paginated.
+      parameters:
+        - {name: q, in: query, required: true, schema: {type: string, minLength: 1, maxLength: 256}, example: murakami}
+        - {name: type, in: query, schema: {type: string, enum: [books, authors, all], default: all}}
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SearchPage'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '504': {$ref: '#/components/responses/Timeout'}
+  /api/v1/users:
+    post:
+      tags: [users]
+      operationId: createUser
+      summary: Register a user (catalog editor)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UserInput'}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+  /api/v1/users/{id}:
+    parameters: [{$ref: '#/components/parameters/PathId'}]
+    get:
+      tags: [users]
+      operationId: getUser
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /healthz:
+    get:
+      tags: [ops]
+      summary: Liveness
+      responses:
+        '200': {description: alive, content: {application/json: {schema: {type: object, properties: {status: {type: string}}}}}}
+  /readyz:
+    get:
+      tags: [ops]
+      summary: Readiness (checks the database)
+      responses:
+        '200': {description: ready, content: {application/json: {schema: {type: object, properties: {status: {type: string}}}}}}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /metrics:
+    get:
+      tags: [ops]
+      summary: Prometheus metrics
+      responses:
+        '200': {description: Prometheus text format, content: {text/plain: {schema: {type: string}}}}
+components:
+  parameters:
+    PathId:
+      name: id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/Id'}
+    Limit:
+      name: limit
+      in: query
+      description: Page size
+      schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque cursor from `next_cursor` of the previous page (same query and sort)
+      schema: {type: string, maxLength: 4096}
+    IncludeTotal:
+      name: include_total
+      in: query
+      description: Return the planner's estimate of matching rows (never COUNT(*))
+      schema: {type: boolean, default: false}
+    UserId:
+      name: X-User-Id
+      in: header
+      required: true
+      description: Id of the acting user (simplified authentication)
+      schema: {$ref: '#/components/schemas/Id'}
+    IfMatch:
+      name: If-Match
+      in: header
+      required: false
+      description: 'Current entity version as ETag, e.g. "3". Required unless `version` is sent in the body.'
+      schema: {type: string}
+      example: '"1"'
+    IfMatchOptional:
+      name: If-Match
+      in: header
+      required: false
+      schema: {type: string}
+  headers:
+    ETag:
+      description: Entity version, e.g. "3"
+      schema: {type: string}
+  responses:
+    BadRequest:
+      description: Malformed request
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+          example: {type: 'https://library.example/problems/bad-request', title: Bad Request, status: 400, detail: invalid request parameters, instance: /api/v1/books, errors: [{field: limit, message: must be an integer between 1 and 100}]}
+    Unauthorized:
+      description: Missing or unknown X-User-Id
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+    NotFound:
+      description: Not found (or soft-deleted)
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+    Conflict:
+      description: Version conflict (optimistic locking) or duplicate (ISBN, username)
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+          example: {type: 'https://library.example/problems/version-conflict', title: Conflict, status: 409, detail: the resource was modified concurrently; reload it and retry with the current version, instance: /api/v1/books/1}
+    Unprocessable:
+      description: Validation failed
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+          example: {type: 'https://library.example/problems/validation', title: Unprocessable Entity, status: 422, detail: the entity failed validation, instance: /api/v1/books, errors: [{field: isbn_13, message: invalid ISBN-13 (format or check digit)}]}
+    PreconditionRequired:
+      description: Neither If-Match nor body version supplied
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+    Timeout:
+      description: Query exceeded statement_timeout
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+    Unavailable:
+      description: Database unavailable
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+  schemas:
+    Id:
+      type: string
+      pattern: '^[1-9][0-9]{0,18}$'
+      description: 63-bit snowflake id as a decimal string
+      example: '910519675559874560'
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: {type: string, format: uri}
+        title: {type: string}
+        status: {type: integer}
+        detail: {type: string}
+        instance: {type: string}
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: {type: string}
+              message: {type: string}
+    PageMeta:
+      type: object
+      required: [next_cursor, limit, total, total_is_estimate]
+      properties:
+        next_cursor: {type: [string, 'null'], description: Cursor of the next page; null on the last page}
+        limit: {type: integer}
+        total: {type: [integer, 'null'], description: Estimated number of matches when include_total=true}
+        total_is_estimate: {type: boolean}
+    AuditFields:
+      type: object
+      required: [created_at, created_by, updated_at, updated_by, version]
+      properties:
+        created_at: {type: string, format: date-time}
+        created_by: {$ref: '#/components/schemas/Id'}
+        updated_at: {type: string, format: date-time}
+        updated_by: {$ref: '#/components/schemas/Id'}
+        version: {type: integer, minimum: 1, description: Optimistic-locking version}
+    BookAuthorRef:
+      type: object
+      properties:
+        author_id: {$ref: '#/components/schemas/Id'}
+        full_name: {type: string}
+        original_name: {type: [string, 'null']}
+        role: {$ref: '#/components/schemas/Role'}
+        ordinal: {type: integer}
+    Role:
+      type: string
+      enum: [author, co-author, translator, editor, illustrator]
+    Book:
+      allOf:
+        - type: object
+          required: [id, title, language_code, genres, external_ids, authors]
+          properties:
+            id: {$ref: '#/components/schemas/Id'}
+            title: {type: string}
+            original_title: {type: [string, 'null']}
+            subtitle: {type: [string, 'null']}
+            description: {type: [string, 'null']}
+            isbn_10: {type: [string, 'null'], pattern: '^[0-9]{9}[0-9X]$'}
+            isbn_13: {type: [string, 'null'], pattern: '^97[89][0-9]{10}$'}
+            language_code: {type: string}
+            publication_year: {type: [integer, 'null']}
+            publisher: {type: [string, 'null']}
+            page_count: {type: [integer, 'null']}
+            genres: {type: array, items: {type: string}}
+            edition: {type: [string, 'null']}
+            external_ids: {type: object, additionalProperties: {type: string}}
+            authors: {type: array, items: {$ref: '#/components/schemas/BookAuthorRef'}}
+        - $ref: '#/components/schemas/AuditFields'
+    BookInput:
+      type: object
+      additionalProperties: false
+      description: For POST/PUT `title` and `language_code` are required. For PATCH every field is optional; `null` clears it.
+      properties:
+        title: {type: string, minLength: 1, maxLength: 1000}
+        original_title: {type: [string, 'null'], maxLength: 1000}
+        subtitle: {type: [string, 'null'], maxLength: 1000}
+        description: {type: [string, 'null'], maxLength: 20000}
+        isbn_10: {type: [string, 'null'], description: Validated (check digit); ISBN-13 is derived when absent}
+        isbn_13: {type: [string, 'null'], description: Validated (check digit); globally unique}
+        language_code: {type: string, pattern: '^[A-Za-z]{2,3}$'}
+        publication_year: {type: [integer, 'null'], minimum: -3000}
+        publisher: {type: [string, 'null'], maxLength: 512}
+        page_count: {type: [integer, 'null'], minimum: 1, maximum: 100000}
+        genres: {type: array, maxItems: 20, items: {type: string, pattern: '^[a-z0-9][a-z0-9-]{0,63}$'}}
+        edition: {type: [string, 'null'], maxLength: 128}
+        external_ids: {type: object, maxProperties: 20, additionalProperties: {type: string, maxLength: 256}}
+        authors:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            required: [author_id]
+            properties:
+              author_id: {$ref: '#/components/schemas/Id'}
+              role: {$ref: '#/components/schemas/Role'}
+              ordinal: {type: integer, minimum: 1, maximum: 1000}
+        version: {type: integer, description: Alternative to If-Match}
+    Author:
+      allOf:
+        - type: object
+          required: [id, full_name, external_ids]
+          properties:
+            id: {$ref: '#/components/schemas/Id'}
+            full_name: {type: string}
+            original_name: {type: [string, 'null']}
+            birth_date: {type: [string, 'null'], format: date}
+            death_date: {type: [string, 'null'], format: date}
+            country_code: {type: [string, 'null']}
+            biography: {type: [string, 'null']}
+            external_ids: {type: object, additionalProperties: {type: string}, example: {viaf: '96987389', isni: '0000000121267294', wikidata: Q991}}
+        - $ref: '#/components/schemas/AuditFields'
+    AuthorInput:
+      type: object
+      additionalProperties: false
+      properties:
+        full_name: {type: string, minLength: 1, maxLength: 512}
+        original_name: {type: [string, 'null'], maxLength: 512}
+        birth_date: {type: [string, 'null'], format: date}
+        death_date: {type: [string, 'null'], format: date, description: Must not be before birth_date}
+        country_code: {type: [string, 'null'], pattern: '^[A-Za-z]{2}$'}
+        biography: {type: [string, 'null'], maxLength: 20000}
+        external_ids: {type: object, additionalProperties: {type: string}}
+        version: {type: integer}
+    AuthorBook:
+      allOf:
+        - $ref: '#/components/schemas/Book'
+        - type: object
+          properties:
+            role: {$ref: '#/components/schemas/Role'}
+            ordinal: {type: integer}
+    AuditEntry:
+      type: object
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        entity_type: {type: string, enum: [book, author, user]}
+        entity_id: {$ref: '#/components/schemas/Id'}
+        action: {type: string, enum: [create, update, delete]}
+        changed_by: {$ref: '#/components/schemas/Id'}
+        changed_at: {type: string, format: date-time}
+        diff:
+          type: object
+          description: '{"field": {"old": ..., "new": ...}}'
+          additionalProperties: true
+    SearchHit:
+      type: object
+      properties:
+        type: {type: string, enum: [book, author]}
+        id: {$ref: '#/components/schemas/Id'}
+        label: {type: string, description: Book title or author full name}
+        original: {type: [string, 'null']}
+        rank: {type: number}
+    User:
+      type: object
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        username: {type: string}
+        email: {type: string, format: email}
+        created_at: {type: string, format: date-time}
+    UserInput:
+      type: object
+      required: [username, email]
+      additionalProperties: false
+      properties:
+        username: {type: string, pattern: '^[A-Za-z0-9_.-]{3,64}$'}
+        email: {type: string, format: email}
+    BookPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/Book'}}}}
+    AuthorPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/Author'}}}}
+    AuthorBookPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/AuthorBook'}}}}
+    AuditPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/AuditEntry'}}}}
+    SearchPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/SearchHit'}}}}

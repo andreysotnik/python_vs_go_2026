@@ -1,0 +1,6 @@
+.bin
+.state
+state
+*.md
+docker-compose.yml
+Dockerfile

@@ -1,0 +1,2996 @@
+openapi: 3.1.0
+info:
+  title: World Library API
+  description: '
+
+    World Library catalog API.
+
+
+    * **Pagination** is keyset-only: pass `next_cursor` back as `cursor`. No OFFSET.
+
+    * **Totals** are planner estimates (`include_total=true` -> `total_is_estimate:
+    true`).
+
+    * **Ids** are 63-bit snowflake ids serialised as decimal strings.
+
+    * **Writes** require `X-User-Id`; updates require `If-Match: "<version>"` (or
+    `version` in the body).
+
+    * **Errors** are RFC 7807 `application/problem+json`.
+
+    '
+  version: 1.0.0
+paths:
+  /api/v1/books:
+    get:
+      tags:
+      - books
+      summary: List/search books (keyset pagination)
+      operationId: list_books_api_v1_books_get
+      parameters:
+      - name: sort
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^[+-]?(title|publication_year|created_at)$
+          - type: 'null'
+          description: title | publication_year | created_at, prefix '-' for descending
+            (default -created_at)
+          title: Sort
+        description: title | publication_year | created_at, prefix '-' for descending
+          (default -created_at)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 100
+            minimum: 1
+          - type: 'null'
+          description: page size, 1..100 (default 20)
+          title: Limit
+        description: page size, 1..100 (default 20)
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 2048
+          - type: 'null'
+          description: opaque cursor from `next_cursor` of the previous page
+          title: Cursor
+        description: opaque cursor from `next_cursor` of the previous page
+      - name: include_total
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: return an approximate total (planner estimate, never COUNT(*))
+          default: false
+          title: Include Total
+        description: return an approximate total (planner estimate, never COUNT(*))
+      - name: title
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 3
+            maxLength: 200
+          - type: 'null'
+          description: substring/fuzzy title match (trigram)
+          title: Title
+        description: substring/fuzzy title match (trigram)
+      - name: author
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 2
+            maxLength: 200
+          - type: 'null'
+          description: author name (full-text, prefix on last word)
+          title: Author
+        description: author name (full-text, prefix on last word)
+      - name: author_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            exclusiveMinimum: 0
+          - type: 'null'
+          description: books of this author
+          title: Author Id
+        description: books of this author
+      - name: isbn
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 32
+          - type: 'null'
+          description: ISBN-10 or ISBN-13, hyphens allowed
+          title: Isbn
+        description: ISBN-10 or ISBN-13, hyphens allowed
+      - name: language
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^[A-Za-z]{2,3}$
+          - type: 'null'
+          description: ISO 639 code
+          title: Language
+        description: ISO 639 code
+      - name: year_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 2100
+            minimum: -3000
+          - type: 'null'
+          title: Year From
+      - name: year_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 2100
+            minimum: -3000
+          - type: 'null'
+          title: Year To
+      - name: publisher
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 256
+          - type: 'null'
+          description: exact publisher name
+          title: Publisher
+        description: exact publisher name
+      - name: genre
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 64
+          - type: 'null'
+          title: Genre
+      - name: created_by
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            exclusiveMinimum: 0
+          - type: 'null'
+          description: user id who created the book
+          title: Created By
+        description: user id who created the book
+      - name: created_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          description: created_at >= (RFC 3339)
+          title: Created From
+        description: created_at >= (RFC 3339)
+      - name: created_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          description: created_at <= (RFC 3339)
+          title: Created To
+        description: created_at <= (RFC 3339)
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 200
+          - type: 'null'
+          description: full-text query (websearch syntax)
+          title: Q
+        description: full-text query (websearch syntax)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page_Book_'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: Query timeout or database unavailable
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    post:
+      tags:
+      - books
+      summary: Create a book
+      operationId: create_book_api_v1_books_post
+      security:
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookCard'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Missing/invalid X-User-Id or unknown user
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version conflict (optimistic locking) or duplicate ISBN/username
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/books/{book_id}:
+    get:
+      tags:
+      - books
+      summary: Book card with authors and audit fields
+      operationId: get_book_api_v1_books__book_id__get
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: Book Id
+        description: snowflake id (decimal)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookCard'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    put:
+      tags:
+      - books
+      summary: Replace a book (optimistic locking)
+      operationId: replace_book_api_v1_books__book_id__put
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: Book Id
+        description: snowflake id (decimal)
+      - name: If-Match
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: current version of the resource, e.g. "3" (as returned in ETag)
+          title: If-Match
+        description: current version of the resource, e.g. "3" (as returned in ETag)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookReplace'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookCard'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Missing/invalid X-User-Id or unknown user
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version conflict (optimistic locking) or duplicate ISBN/username
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '428':
+          description: If-Match / version required
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    patch:
+      tags:
+      - books
+      summary: Partially update a book (JSON merge patch)
+      operationId: patch_book_api_v1_books__book_id__patch
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: Book Id
+        description: snowflake id (decimal)
+      - name: If-Match
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: current version of the resource, e.g. "3" (as returned in ETag)
+          title: If-Match
+        description: current version of the resource, e.g. "3" (as returned in ETag)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookPatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookCard'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Missing/invalid X-User-Id or unknown user
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version conflict (optimistic locking) or duplicate ISBN/username
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '428':
+          description: If-Match / version required
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    delete:
+      tags:
+      - books
+      summary: Soft-delete a book
+      operationId: delete_book_api_v1_books__book_id__delete
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: Book Id
+        description: snowflake id (decimal)
+      - name: If-Match
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: current version of the resource, e.g. "3" (as returned in ETag)
+          title: If-Match
+        description: current version of the resource, e.g. "3" (as returned in ETag)
+      responses:
+        '204':
+          description: Successful Response
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Missing/invalid X-User-Id or unknown user
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version conflict (optimistic locking) or duplicate ISBN/username
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/books/{book_id}/history:
+    get:
+      tags:
+      - books
+      summary: Change history (audit log)
+      operationId: book_history_api_v1_books__book_id__history_get
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: Book Id
+        description: snowflake id (decimal)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 100
+            minimum: 1
+          - type: 'null'
+          description: page size, 1..100 (default 20)
+          title: Limit
+        description: page size, 1..100 (default 20)
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 2048
+          - type: 'null'
+          description: opaque cursor from `next_cursor` of the previous page
+          title: Cursor
+        description: opaque cursor from `next_cursor` of the previous page
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page_HistoryEntry_'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/authors:
+    get:
+      tags:
+      - authors
+      summary: List/search authors (keyset pagination)
+      operationId: list_authors_api_v1_authors_get
+      parameters:
+      - name: sort
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^[+-]?(full_name|birth_date|created_at)$
+          - type: 'null'
+          description: full_name | birth_date | created_at, prefix '-' for descending
+            (default full_name)
+          title: Sort
+        description: full_name | birth_date | created_at, prefix '-' for descending
+          (default full_name)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 100
+            minimum: 1
+          - type: 'null'
+          description: page size, 1..100 (default 20)
+          title: Limit
+        description: page size, 1..100 (default 20)
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 2048
+          - type: 'null'
+          description: opaque cursor from `next_cursor` of the previous page
+          title: Cursor
+        description: opaque cursor from `next_cursor` of the previous page
+      - name: include_total
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: return an approximate total (planner estimate, never COUNT(*))
+          default: false
+          title: Include Total
+        description: return an approximate total (planner estimate, never COUNT(*))
+      - name: name
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 3
+            maxLength: 200
+          - type: 'null'
+          description: substring/fuzzy name match (trigram)
+          title: Name
+        description: substring/fuzzy name match (trigram)
+      - name: country
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^[A-Za-z]{2}$
+          - type: 'null'
+          description: ISO 3166-1 alpha-2
+          title: Country
+        description: ISO 3166-1 alpha-2
+      - name: born_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          description: birth_date >=
+          title: Born From
+        description: birth_date >=
+      - name: born_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          description: birth_date <=
+          title: Born To
+        description: birth_date <=
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 200
+          - type: 'null'
+          description: full-text query
+          title: Q
+        description: full-text query
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page_Author_'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: Query timeout or database unavailable
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    post:
+      tags:
+      - authors
+      summary: Create an author
+      operationId: create_author_api_v1_authors_post
+      security:
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorCard'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Missing/invalid X-User-Id or unknown user
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/authors/{author_id}:
+    get:
+      tags:
+      - authors
+      summary: Author card with audit fields
+      operationId: get_author_api_v1_authors__author_id__get
+      parameters:
+      - name: author_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: Author Id
+        description: snowflake id (decimal)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorCard'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    put:
+      tags:
+      - authors
+      summary: Replace an author (optimistic locking)
+      operationId: replace_author_api_v1_authors__author_id__put
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: author_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: Author Id
+        description: snowflake id (decimal)
+      - name: If-Match
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: current version of the resource, e.g. "3" (as returned in ETag)
+          title: If-Match
+        description: current version of the resource, e.g. "3" (as returned in ETag)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorReplace'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorCard'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Missing/invalid X-User-Id or unknown user
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version conflict (optimistic locking) or duplicate ISBN/username
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '428':
+          description: If-Match / version required
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    patch:
+      tags:
+      - authors
+      summary: Partially update an author
+      operationId: patch_author_api_v1_authors__author_id__patch
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: author_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: Author Id
+        description: snowflake id (decimal)
+      - name: If-Match
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: current version of the resource, e.g. "3" (as returned in ETag)
+          title: If-Match
+        description: current version of the resource, e.g. "3" (as returned in ETag)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorPatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorCard'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Missing/invalid X-User-Id or unknown user
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version conflict (optimistic locking) or duplicate ISBN/username
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '428':
+          description: If-Match / version required
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    delete:
+      tags:
+      - authors
+      summary: Soft-delete an author
+      operationId: delete_author_api_v1_authors__author_id__delete
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: author_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: Author Id
+        description: snowflake id (decimal)
+      - name: If-Match
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: current version of the resource, e.g. "3" (as returned in ETag)
+          title: If-Match
+        description: current version of the resource, e.g. "3" (as returned in ETag)
+      responses:
+        '204':
+          description: Successful Response
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Missing/invalid X-User-Id or unknown user
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version conflict (optimistic locking) or duplicate ISBN/username
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/authors/{author_id}/books:
+    get:
+      tags:
+      - authors
+      summary: Books of an author (newest first)
+      operationId: author_books_api_v1_authors__author_id__books_get
+      parameters:
+      - name: author_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: Author Id
+        description: snowflake id (decimal)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 100
+            minimum: 1
+          - type: 'null'
+          description: page size, 1..100 (default 20)
+          title: Limit
+        description: page size, 1..100 (default 20)
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 2048
+          - type: 'null'
+          description: opaque cursor from `next_cursor` of the previous page
+          title: Cursor
+        description: opaque cursor from `next_cursor` of the previous page
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page_AuthorBook_'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/authors/{author_id}/history:
+    get:
+      tags:
+      - authors
+      summary: Change history (audit log)
+      operationId: author_history_api_v1_authors__author_id__history_get
+      parameters:
+      - name: author_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: Author Id
+        description: snowflake id (decimal)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 100
+            minimum: 1
+          - type: 'null'
+          description: page size, 1..100 (default 20)
+          title: Limit
+        description: page size, 1..100 (default 20)
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 2048
+          - type: 'null'
+          description: opaque cursor from `next_cursor` of the previous page
+          title: Cursor
+        description: opaque cursor from `next_cursor` of the previous page
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page_HistoryEntry_'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/search:
+    get:
+      tags:
+      - search
+      summary: Relevance search over books and authors
+      operationId: search_api_v1_search_get
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: query text; typos tolerated (trigram)
+          title: Q
+        description: query text; typos tolerated (trigram)
+      - name: type
+        in: query
+        required: false
+        schema:
+          enum:
+          - books
+          - authors
+          - all
+          type: string
+          description: what to search
+          default: all
+          title: Type
+        description: what to search
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 100
+            minimum: 1
+          - type: 'null'
+          description: page size, 1..100 (default 20)
+          title: Limit
+        description: page size, 1..100 (default 20)
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 2048
+          - type: 'null'
+          description: opaque cursor from `next_cursor` of the previous page
+          title: Cursor
+        description: opaque cursor from `next_cursor` of the previous page
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page_SearchHit_'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: Query timeout or database unavailable
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/users:
+    post:
+      tags:
+      - users
+      summary: Register a user
+      operationId: create_user_api_v1_users_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Malformed request (bad cursor, unsupported sort, malformed
+            JSON, bad If-Match)
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version conflict (optimistic locking) or duplicate ISBN/username
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/users/{user_id}:
+    get:
+      tags:
+      - users
+      summary: Get a user
+      operationId: get_user_api_v1_users__user_id__get
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          exclusiveMinimum: 0
+          description: snowflake id (decimal)
+          title: User Id
+        description: snowflake id (decimal)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation error
+          content:
+            application/problem+json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /healthz:
+    get:
+      tags:
+      - ops
+      summary: Liveness probe
+      operationId: healthz_healthz_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /readyz:
+    get:
+      tags:
+      - ops
+      summary: Readiness probe (checks the database)
+      operationId: readyz_readyz_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '503':
+          description: database unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /metrics:
+    get:
+      tags:
+      - ops
+      summary: Prometheus metrics
+      operationId: metrics_metrics_get
+      responses:
+        '200':
+          description: Successful Response
+components:
+  schemas:
+    Author:
+      properties:
+        id:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Id
+          examples:
+          - '7395413523316707328'
+        full_name:
+          type: string
+          title: Full Name
+        original_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Original Name
+        birth_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Birth Date
+        death_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Death Date
+        country_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country Code
+        biography:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Biography
+        external_ids:
+          additionalProperties:
+            type: string
+          type: object
+          title: External Ids
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        created_by:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Created By
+          examples:
+          - '7395413523316707328'
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        updated_by:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Updated By
+          examples:
+          - '7395413523316707328'
+        version:
+          type: integer
+          title: Version
+      type: object
+      required:
+      - id
+      - full_name
+      - original_name
+      - birth_date
+      - death_date
+      - country_code
+      - biography
+      - external_ids
+      - created_at
+      - created_by
+      - updated_at
+      - updated_by
+      - version
+      title: Author
+      description: 'Field order: entity fields first, audit fields last (MRO-driven
+        in pydantic).'
+    AuthorBook:
+      properties:
+        id:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Id
+          examples:
+          - '7395413523316707328'
+        title:
+          type: string
+          title: Title
+        original_title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Original Title
+        subtitle:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subtitle
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        isbn_10:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 10
+        isbn_13:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 13
+        language_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Language Code
+        publication_year:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Publication Year
+        publisher:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Publisher
+        page_count:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Page Count
+        genres:
+          items:
+            type: string
+          type: array
+          title: Genres
+        edition:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Edition
+        external_ids:
+          additionalProperties:
+            type: string
+          type: object
+          title: External Ids
+        authors:
+          items:
+            $ref: '#/components/schemas/BookAuthor'
+          type: array
+          title: Authors
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        created_by:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Created By
+          examples:
+          - '7395413523316707328'
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        updated_by:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Updated By
+          examples:
+          - '7395413523316707328'
+        version:
+          type: integer
+          title: Version
+        roles:
+          items:
+            type: string
+            enum:
+            - author
+            - co-author
+            - translator
+            - editor
+            - illustrator
+          type: array
+          title: Roles
+      type: object
+      required:
+      - id
+      - title
+      - original_title
+      - subtitle
+      - description
+      - isbn_10
+      - isbn_13
+      - language_code
+      - publication_year
+      - publisher
+      - page_count
+      - genres
+      - edition
+      - external_ids
+      - created_at
+      - created_by
+      - updated_at
+      - updated_by
+      - version
+      - roles
+      title: AuthorBook
+    AuthorCard:
+      properties:
+        id:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Id
+          examples:
+          - '7395413523316707328'
+        full_name:
+          type: string
+          title: Full Name
+        original_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Original Name
+        birth_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Birth Date
+        death_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Death Date
+        country_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country Code
+        biography:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Biography
+        external_ids:
+          additionalProperties:
+            type: string
+          type: object
+          title: External Ids
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        created_by:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Created By
+          examples:
+          - '7395413523316707328'
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        updated_by:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Updated By
+          examples:
+          - '7395413523316707328'
+        version:
+          type: integer
+          title: Version
+        created_by_username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created By Username
+        updated_by_username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated By Username
+      type: object
+      required:
+      - id
+      - full_name
+      - original_name
+      - birth_date
+      - death_date
+      - country_code
+      - biography
+      - external_ids
+      - created_at
+      - created_by
+      - updated_at
+      - updated_by
+      - version
+      title: AuthorCard
+    AuthorCreate:
+      properties:
+        full_name:
+          type: string
+          maxLength: 512
+          minLength: 1
+          title: Full Name
+          examples:
+          - Lev Tolstoy
+        original_name:
+          anyOf:
+          - type: string
+            maxLength: 512
+            minLength: 1
+          - type: 'null'
+          title: Original Name
+          examples:
+          - Лев Толстой
+        birth_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Birth Date
+          examples:
+          - '1828-09-09'
+        death_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Death Date
+          examples:
+          - '1910-11-20'
+        country_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country Code
+          description: ISO 3166-1 alpha-2
+          examples:
+          - RU
+        biography:
+          anyOf:
+          - type: string
+            maxLength: 20000
+          - type: 'null'
+          title: Biography
+        external_ids:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          title: External Ids
+          examples:
+          - viaf: '96987389'
+            wikidata: Q7243
+      additionalProperties: false
+      type: object
+      required:
+      - full_name
+      title: AuthorCreate
+    AuthorPatch:
+      properties:
+        full_name:
+          anyOf:
+          - type: string
+            maxLength: 512
+            minLength: 1
+          - type: 'null'
+          title: Full Name
+        original_name:
+          anyOf:
+          - type: string
+            maxLength: 512
+            minLength: 1
+          - type: 'null'
+          title: Original Name
+        birth_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Birth Date
+        death_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Death Date
+        country_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country Code
+        biography:
+          anyOf:
+          - type: string
+            maxLength: 20000
+          - type: 'null'
+          title: Biography
+        external_ids:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          title: External Ids
+        version:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Version
+      additionalProperties: false
+      type: object
+      title: AuthorPatch
+      description: 'PATCH body (JSON merge-patch semantics): absent = unchanged, null
+        = cleared.'
+    AuthorReplace:
+      properties:
+        full_name:
+          type: string
+          maxLength: 512
+          minLength: 1
+          title: Full Name
+          examples:
+          - Lev Tolstoy
+        original_name:
+          anyOf:
+          - type: string
+            maxLength: 512
+            minLength: 1
+          - type: 'null'
+          title: Original Name
+          examples:
+          - Лев Толстой
+        birth_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Birth Date
+          examples:
+          - '1828-09-09'
+        death_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Death Date
+          examples:
+          - '1910-11-20'
+        country_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country Code
+          description: ISO 3166-1 alpha-2
+          examples:
+          - RU
+        biography:
+          anyOf:
+          - type: string
+            maxLength: 20000
+          - type: 'null'
+          title: Biography
+        external_ids:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          title: External Ids
+          examples:
+          - viaf: '96987389'
+            wikidata: Q7243
+        version:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - full_name
+      title: AuthorReplace
+      description: 'PUT body: full replacement; `version` may be given instead of
+        If-Match.'
+    Book:
+      properties:
+        id:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Id
+          examples:
+          - '7395413523316707328'
+        title:
+          type: string
+          title: Title
+        original_title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Original Title
+        subtitle:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subtitle
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        isbn_10:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 10
+        isbn_13:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 13
+        language_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Language Code
+        publication_year:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Publication Year
+        publisher:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Publisher
+        page_count:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Page Count
+        genres:
+          items:
+            type: string
+          type: array
+          title: Genres
+        edition:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Edition
+        external_ids:
+          additionalProperties:
+            type: string
+          type: object
+          title: External Ids
+        authors:
+          items:
+            $ref: '#/components/schemas/BookAuthor'
+          type: array
+          title: Authors
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        created_by:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Created By
+          examples:
+          - '7395413523316707328'
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        updated_by:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Updated By
+          examples:
+          - '7395413523316707328'
+        version:
+          type: integer
+          title: Version
+      type: object
+      required:
+      - id
+      - title
+      - original_title
+      - subtitle
+      - description
+      - isbn_10
+      - isbn_13
+      - language_code
+      - publication_year
+      - publisher
+      - page_count
+      - genres
+      - edition
+      - external_ids
+      - created_at
+      - created_by
+      - updated_at
+      - updated_by
+      - version
+      title: Book
+      description: 'Field order: entity fields first, audit fields last (MRO-driven
+        in pydantic).'
+    BookAuthor:
+      properties:
+        id:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Id
+          examples:
+          - '7395413523316707328'
+        full_name:
+          type: string
+          title: Full Name
+        role:
+          type: string
+          enum:
+          - author
+          - co-author
+          - translator
+          - editor
+          - illustrator
+          title: Role
+        ordinal:
+          type: integer
+          title: Ordinal
+      type: object
+      required:
+      - id
+      - full_name
+      - role
+      - ordinal
+      title: BookAuthor
+    BookAuthorLink:
+      properties:
+        author_id:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Author Id
+          examples:
+          - '7395413523316707328'
+        role:
+          type: string
+          enum:
+          - author
+          - co-author
+          - translator
+          - editor
+          - illustrator
+          title: Role
+          default: author
+        ordinal:
+          type: integer
+          maximum: 1000.0
+          minimum: 1.0
+          title: Ordinal
+          default: 1
+      additionalProperties: false
+      type: object
+      required:
+      - author_id
+      title: BookAuthorLink
+    BookCard:
+      properties:
+        id:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Id
+          examples:
+          - '7395413523316707328'
+        title:
+          type: string
+          title: Title
+        original_title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Original Title
+        subtitle:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subtitle
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        isbn_10:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 10
+        isbn_13:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 13
+        language_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Language Code
+        publication_year:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Publication Year
+        publisher:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Publisher
+        page_count:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Page Count
+        genres:
+          items:
+            type: string
+          type: array
+          title: Genres
+        edition:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Edition
+        external_ids:
+          additionalProperties:
+            type: string
+          type: object
+          title: External Ids
+        authors:
+          items:
+            $ref: '#/components/schemas/BookAuthor'
+          type: array
+          title: Authors
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        created_by:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Created By
+          examples:
+          - '7395413523316707328'
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        updated_by:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Updated By
+          examples:
+          - '7395413523316707328'
+        version:
+          type: integer
+          title: Version
+        created_by_username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created By Username
+        updated_by_username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated By Username
+      type: object
+      required:
+      - id
+      - title
+      - original_title
+      - subtitle
+      - description
+      - isbn_10
+      - isbn_13
+      - language_code
+      - publication_year
+      - publisher
+      - page_count
+      - genres
+      - edition
+      - external_ids
+      - created_at
+      - created_by
+      - updated_at
+      - updated_by
+      - version
+      title: BookCard
+    BookCreate:
+      properties:
+        title:
+          type: string
+          maxLength: 1024
+          minLength: 1
+          title: Title
+          examples:
+          - Война и мир
+        original_title:
+          anyOf:
+          - type: string
+            maxLength: 1024
+            minLength: 1
+          - type: 'null'
+          title: Original Title
+        subtitle:
+          anyOf:
+          - type: string
+            maxLength: 1024
+          - type: 'null'
+          title: Subtitle
+        description:
+          anyOf:
+          - type: string
+            maxLength: 20000
+          - type: 'null'
+          title: Description
+        isbn_10:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 10
+          examples:
+          - 0140447938
+        isbn_13:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 13
+          examples:
+          - '9780140447934'
+        language_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Language Code
+          description: ISO 639-1/639-3
+          examples:
+          - ru
+        publication_year:
+          anyOf:
+          - type: integer
+            maximum: 2100.0
+            minimum: -3000.0
+          - type: 'null'
+          title: Publication Year
+          examples:
+          - 1869
+        publisher:
+          anyOf:
+          - type: string
+            maxLength: 256
+            minLength: 1
+          - type: 'null'
+          title: Publisher
+          examples:
+          - Penguin Classics
+        page_count:
+          anyOf:
+          - type: integer
+            maximum: 100000.0
+            minimum: 1.0
+          - type: 'null'
+          title: Page Count
+        genres:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Genres
+          examples:
+          - - novel
+            - historical
+        edition:
+          anyOf:
+          - type: string
+            maxLength: 128
+          - type: 'null'
+          title: Edition
+        external_ids:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          title: External Ids
+          examples:
+          - openlibrary: OL267096W
+        authors:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/BookAuthorLink'
+            type: array
+          - type: 'null'
+          title: Authors
+      additionalProperties: false
+      type: object
+      required:
+      - title
+      title: BookCreate
+    BookPatch:
+      properties:
+        title:
+          anyOf:
+          - type: string
+            maxLength: 1024
+            minLength: 1
+          - type: 'null'
+          title: Title
+        original_title:
+          anyOf:
+          - type: string
+            maxLength: 1024
+            minLength: 1
+          - type: 'null'
+          title: Original Title
+        subtitle:
+          anyOf:
+          - type: string
+            maxLength: 1024
+          - type: 'null'
+          title: Subtitle
+        description:
+          anyOf:
+          - type: string
+            maxLength: 20000
+          - type: 'null'
+          title: Description
+        isbn_10:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 10
+        isbn_13:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 13
+        language_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Language Code
+        publication_year:
+          anyOf:
+          - type: integer
+            maximum: 2100.0
+            minimum: -3000.0
+          - type: 'null'
+          title: Publication Year
+        publisher:
+          anyOf:
+          - type: string
+            maxLength: 256
+            minLength: 1
+          - type: 'null'
+          title: Publisher
+        page_count:
+          anyOf:
+          - type: integer
+            maximum: 100000.0
+            minimum: 1.0
+          - type: 'null'
+          title: Page Count
+        genres:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Genres
+        edition:
+          anyOf:
+          - type: string
+            maxLength: 128
+          - type: 'null'
+          title: Edition
+        external_ids:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          title: External Ids
+        authors:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/BookAuthorLink'
+            type: array
+          - type: 'null'
+          title: Authors
+        version:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Version
+      additionalProperties: false
+      type: object
+      title: BookPatch
+    BookReplace:
+      properties:
+        title:
+          type: string
+          maxLength: 1024
+          minLength: 1
+          title: Title
+          examples:
+          - Война и мир
+        original_title:
+          anyOf:
+          - type: string
+            maxLength: 1024
+            minLength: 1
+          - type: 'null'
+          title: Original Title
+        subtitle:
+          anyOf:
+          - type: string
+            maxLength: 1024
+          - type: 'null'
+          title: Subtitle
+        description:
+          anyOf:
+          - type: string
+            maxLength: 20000
+          - type: 'null'
+          title: Description
+        isbn_10:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 10
+          examples:
+          - 0140447938
+        isbn_13:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn 13
+          examples:
+          - '9780140447934'
+        language_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Language Code
+          description: ISO 639-1/639-3
+          examples:
+          - ru
+        publication_year:
+          anyOf:
+          - type: integer
+            maximum: 2100.0
+            minimum: -3000.0
+          - type: 'null'
+          title: Publication Year
+          examples:
+          - 1869
+        publisher:
+          anyOf:
+          - type: string
+            maxLength: 256
+            minLength: 1
+          - type: 'null'
+          title: Publisher
+          examples:
+          - Penguin Classics
+        page_count:
+          anyOf:
+          - type: integer
+            maximum: 100000.0
+            minimum: 1.0
+          - type: 'null'
+          title: Page Count
+        genres:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Genres
+          examples:
+          - - novel
+            - historical
+        edition:
+          anyOf:
+          - type: string
+            maxLength: 128
+          - type: 'null'
+          title: Edition
+        external_ids:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          title: External Ids
+          examples:
+          - openlibrary: OL267096W
+        authors:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/BookAuthorLink'
+            type: array
+          - type: 'null'
+          title: Authors
+        version:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - title
+      title: BookReplace
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    Health:
+      properties:
+        status:
+          type: string
+          enum:
+          - ok
+          - unavailable
+          title: Status
+        detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Detail
+      type: object
+      required:
+      - status
+      title: Health
+    HistoryEntry:
+      properties:
+        id:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Id
+          examples:
+          - '7395413523316707328'
+        entity_type:
+          type: string
+          enum:
+          - book
+          - author
+          title: Entity Type
+        entity_id:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Entity Id
+          examples:
+          - '7395413523316707328'
+        action:
+          type: string
+          enum:
+          - create
+          - update
+          - delete
+          title: Action
+        changed_by:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Changed By
+          examples:
+          - '7395413523316707328'
+        changed_by_username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Changed By Username
+        changed_at:
+          type: string
+          format: date-time
+          title: Changed At
+        diff:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Diff
+          description: 'create/delete: snapshot of fields; update: {field: {old, new}}'
+          examples:
+          - title:
+              new: New
+              old: Old
+      type: object
+      required:
+      - id
+      - entity_type
+      - entity_id
+      - action
+      - changed_by
+      - changed_by_username
+      - changed_at
+      - diff
+      title: HistoryEntry
+    Page_AuthorBook_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AuthorBook'
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+          description: opaque keyset cursor; null on the last page
+        limit:
+          type: integer
+          title: Limit
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+          description: only with include_total=true; an estimate, never COUNT(*)
+        total_is_estimate:
+          type: boolean
+          title: Total Is Estimate
+      type: object
+      required:
+      - items
+      - next_cursor
+      - limit
+      - total
+      - total_is_estimate
+      title: Page[AuthorBook]
+    Page_Author_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Author'
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+          description: opaque keyset cursor; null on the last page
+        limit:
+          type: integer
+          title: Limit
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+          description: only with include_total=true; an estimate, never COUNT(*)
+        total_is_estimate:
+          type: boolean
+          title: Total Is Estimate
+      type: object
+      required:
+      - items
+      - next_cursor
+      - limit
+      - total
+      - total_is_estimate
+      title: Page[Author]
+    Page_Book_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Book'
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+          description: opaque keyset cursor; null on the last page
+        limit:
+          type: integer
+          title: Limit
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+          description: only with include_total=true; an estimate, never COUNT(*)
+        total_is_estimate:
+          type: boolean
+          title: Total Is Estimate
+      type: object
+      required:
+      - items
+      - next_cursor
+      - limit
+      - total
+      - total_is_estimate
+      title: Page[Book]
+    Page_HistoryEntry_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/HistoryEntry'
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+          description: opaque keyset cursor; null on the last page
+        limit:
+          type: integer
+          title: Limit
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+          description: only with include_total=true; an estimate, never COUNT(*)
+        total_is_estimate:
+          type: boolean
+          title: Total Is Estimate
+      type: object
+      required:
+      - items
+      - next_cursor
+      - limit
+      - total
+      - total_is_estimate
+      title: Page[HistoryEntry]
+    Page_SearchHit_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/SearchHit'
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+          description: opaque keyset cursor; null on the last page
+        limit:
+          type: integer
+          title: Limit
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+          description: only with include_total=true; an estimate, never COUNT(*)
+        total_is_estimate:
+          type: boolean
+          title: Total Is Estimate
+      type: object
+      required:
+      - items
+      - next_cursor
+      - limit
+      - total
+      - total_is_estimate
+      title: Page[SearchHit]
+    Problem:
+      properties:
+        type:
+          type: string
+          title: Type
+          examples:
+          - https://library.example/problems/not-found
+        title:
+          type: string
+          title: Title
+          examples:
+          - Not Found
+        status:
+          type: integer
+          title: Status
+          examples:
+          - 404
+        detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Detail
+          examples:
+          - book 42 not found
+        instance:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Instance
+          examples:
+          - /api/v1/books/42
+        errors:
+          anyOf:
+          - items:
+              additionalProperties: true
+              type: object
+            type: array
+          - type: 'null'
+          title: Errors
+          examples:
+          - - loc:
+              - body
+              - title
+              msg: Field required
+              type: missing
+      type: object
+      required:
+      - type
+      - title
+      - status
+      title: Problem
+      description: RFC 7807 problem details.
+    SearchHit:
+      properties:
+        type:
+          type: string
+          enum:
+          - book
+          - author
+          title: Type
+        id:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Id
+          examples:
+          - '7395413523316707328'
+        title:
+          type: string
+          title: Title
+          description: book title or author full name
+        subtitle:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subtitle
+          description: book original title / author original name
+        score:
+          type: number
+          title: Score
+          description: ts_rank + word_similarity
+      type: object
+      required:
+      - type
+      - id
+      - title
+      - subtitle
+      - score
+      title: SearchHit
+    User:
+      properties:
+        id:
+          type: string
+          pattern: ^[0-9]{1,19}$
+          title: Id
+          examples:
+          - '7395413523316707328'
+        username:
+          type: string
+          title: Username
+        email:
+          type: string
+          title: Email
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - username
+      - email
+      - created_at
+      title: User
+    UserCreate:
+      properties:
+        username:
+          type: string
+          pattern: ^[A-Za-z0-9_.-]{3,64}$
+          title: Username
+          examples:
+          - librarian_anna
+        email:
+          type: string
+          maxLength: 254
+          pattern: ^[^@\s]+@[^@\s]+$
+          title: Email
+          examples:
+          - anna@library.org
+      additionalProperties: false
+      type: object
+      required:
+      - username
+      - email
+      title: UserCreate
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    APIKeyHeader:
+      type: apiKey
+      description: id of the acting user
+      in: header
+      name: X-User-Id

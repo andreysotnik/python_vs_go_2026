@@ -1,0 +1,14 @@
+# Override for the constrained dev box used in the experiment (Docker VM disk 100% full,
+# ~8 GB RAM shared with other stacks). PGDATA lives in RAM (tmpfs): data is lost on `down`,
+# re-run `make seed`. NOT a bind mount: virtiofs makes every relation-size syscall a host
+# round trip, and planning over 64 partitions x 10 indexes then serialises under load.
+# Usage: COMPOSE_FILE=docker-compose.yml:deploy/compose.devbox.yml make up seed ...
+services:
+  postgres:
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf",
+              "-c", "max_wal_size=1GB", "-c", "min_wal_size=256MB"]
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+        tmpfs:
+          size: 5368709120

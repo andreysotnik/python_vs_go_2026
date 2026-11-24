@@ -1,0 +1,37 @@
+name: mini_mailer_go
+
+services:
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    ports:
+      - "21025:1025"   # SMTP
+      - "28025:8025"   # UI / API
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  mailer:
+    build: .
+    image: mini_mailer_go-mailer:latest
+    command: ["run", "--config", "/etc/mailer/jobs.yaml"]
+    environment:
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_TLS: none
+      SMTP_FROM: "Рассылка <mailer@example.com>"
+      STATE_DIR: /var/lib/mailer
+      LOG_LEVEL: info
+    volumes:
+      - ./examples:/etc/mailer:ro
+      - mailer-state:/var/lib/mailer
+    depends_on:
+      mailpit:
+        condition: service_healthy
+    restart: unless-stopped
+    # SIGTERM lets the in-flight email (with its retries) finish.
+    stop_grace_period: 90s
+
+volumes:
+  mailer-state:

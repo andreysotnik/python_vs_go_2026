@@ -1,0 +1,42 @@
+{
+ "tokens": {
+  "input_tokens": 44,
+  "output_tokens": 42070,
+  "cache_creation_input_tokens": 107364,
+  "cache_read_input_tokens": 1502795,
+  "api_calls": 22,
+  "all_tokens": 1652273
+ },
+ "tool_calls": {
+  "Bash": 20,
+  "Read": 8,
+  "SubagentHandback": 1
+ },
+ "tool_calls_total": 29,
+ "first_ts": "2026-11-19T13:22:52.088Z",
+ "last_ts": "2026-11-19T13:29:33.186Z",
+ "loc_by_lang": {
+  "TOML": {
+   "files": 1,
+   "lines": 56,
+   "code": 47
+  },
+  "Markdown": {
+   "files": 3,
+   "lines": 211,
+   "code": 162
+  },
+  "JSON": {
+   "files": 1,
+   "lines": 117,
+   "code": 117
+  },
+  "Python": {
+   "files": 17,
+   "lines": 1567,
+   "code": 1275
+  }
+ },
+ "main_lang_prod_code": 810,
+ "main_lang_test_code": 465
+}

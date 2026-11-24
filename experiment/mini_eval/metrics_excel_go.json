@@ -1,0 +1,53 @@
+{
+ "tokens": {
+  "input_tokens": 108,
+  "output_tokens": 75287,
+  "cache_creation_input_tokens": 126202,
+  "cache_read_input_tokens": 4802181,
+  "api_calls": 54,
+  "all_tokens": 5003778
+ },
+ "tool_calls": {
+  "Bash": 42,
+  "Write": 16,
+  "Read": 8,
+  "SubagentHandback": 1
+ },
+ "tool_calls_total": 67,
+ "first_ts": "2026-11-19T13:22:52.099Z",
+ "last_ts": "2026-11-19T13:45:06.403Z",
+ "loc_by_lang": {
+  "go.mod": {
+   "files": 1,
+   "lines": 26,
+   "code": 23
+  },
+  "Make": {
+   "files": 1,
+   "lines": 26,
+   "code": 17
+  },
+  "YAML": {
+   "files": 1,
+   "lines": 31,
+   "code": 29
+  },
+  "Markdown": {
+   "files": 3,
+   "lines": 270,
+   "code": 213
+  },
+  "Go": {
+   "files": 20,
+   "lines": 2729,
+   "code": 2359
+  },
+  "JSON": {
+   "files": 1,
+   "lines": 117,
+   "code": 117
+  }
+ },
+ "main_lang_prod_code": 1429,
+ "main_lang_test_code": 930
+}

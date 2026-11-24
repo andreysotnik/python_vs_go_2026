@@ -1,0 +1,48 @@
+{
+ "tokens": {
+  "input_tokens": 68,
+  "output_tokens": 66995,
+  "cache_creation_input_tokens": 90414,
+  "cache_read_input_tokens": 2369006,
+  "api_calls": 34,
+  "all_tokens": 2526483
+ },
+ "tool_calls": {
+  "Bash": 25,
+  "Write": 14,
+  "Edit": 1,
+  "SubagentHandback": 1
+ },
+ "tool_calls_total": 41,
+ "first_ts": "2026-11-19T13:22:52.109Z",
+ "last_ts": "2026-11-19T13:34:15.316Z",
+ "loc_by_lang": {
+  "go.mod": {
+   "files": 1,
+   "lines": 8,
+   "code": 6
+  },
+  "Docker": {
+   "files": 1,
+   "lines": 22,
+   "code": 18
+  },
+  "Markdown": {
+   "files": 3,
+   "lines": 211,
+   "code": 172
+  },
+  "YAML": {
+   "files": 2,
+   "lines": 60,
+   "code": 55
+  },
+  "Go": {
+   "files": 20,
+   "lines": 2841,
+   "code": 2512
+  }
+ },
+ "main_lang_prod_code": 1331,
+ "main_lang_test_code": 1181
+}

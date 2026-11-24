@@ -1,0 +1,23 @@
+jobs:
+  - name: daily-report
+    schedule: "0 9 * * 1-5"        # 09:00 Mon-Fri, Moscow time
+    timezone: "Europe/Moscow"
+    to: ["team@example.com", "boss@example.com"]
+    cc: []
+    subject: "Ежедневный отчёт за {{date}}"
+    body: |
+      Привет! Отчёт за {{date}} во вложении.
+      Задача: {{job}}, слот: {{datetime}}.
+    html: false
+    attachments: ["./files/report.pdf"]   # relative to this file's directory
+
+  - name: weekly-digest
+    schedule: "30 18 * * fri"
+    timezone: "UTC"
+    to: ["Команда <team@example.com>"]
+    cc: ["archive@example.com"]
+    subject: "Weekly digest {{date}}"
+    body: |
+      <h1>Дайджест недели</h1>
+      <p>Сформировано {{datetime}} задачей <b>{{job}}</b>.</p>
+    html: true

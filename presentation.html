@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Go vs Python агенты</title>
+<style>
+:root{
+  --bg:#f7f6f2; --surface:#ffffff; --ink:#1b1b1f; --muted:#62626b; --line:#e3e1da;
+  --go:#0a7ea4; --go-soft:#d9eef5; --py:#b5651d; --py-soft:#f6e6d6;
+  --ok:#2f7d4f; --bad:#b3372f; --accent:#4b3fbf;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121216; --surface:#1b1b21; --ink:#ececf1; --muted:#9d9daa; --line:#2c2c35;
+    --go:#4cc2e6; --go-soft:#143440; --py:#e9a15a; --py-soft:#3a2a1a;
+    --ok:#6cc58f; --bad:#ef7d74; --accent:#9b90ff;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121216; --surface:#1b1b21; --ink:#ececf1; --muted:#9d9daa; --line:#2c2c35;
+  --go:#4cc2e6; --go-soft:#143440; --py:#e9a15a; --py-soft:#3a2a1a;
+  --ok:#6cc58f; --bad:#ef7d74; --accent:#9b90ff;
+}
+*{box-sizing:border-box}
+html{scroll-snap-type:y mandatory;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+section{min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;
+  padding:56px max(16px,6vw);border-bottom:1px solid var(--line);position:relative}
+.n{position:absolute;top:20px;right:max(16px,6vw);color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+h1{font-size:clamp(34px,6vw,68px);line-height:1.05;margin:0 0 20px;letter-spacing:-.02em}
+h2{font-size:clamp(26px,3.6vw,42px);margin:0 0 8px;letter-spacing:-.01em}
+.lead{font-size:clamp(17px,1.8vw,21px);color:var(--muted);max-width:60ch;margin:0 0 28px}
+.go{color:var(--go)} .py{color:var(--py)}
+.tag{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600}
+.tag.go{background:var(--go-soft)} .tag.py{background:var(--py-soft)}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.two{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h3{margin:0 0 8px;font-size:17px}
+.card ul{margin:0;padding-left:18px} .card li{margin:4px 0}
+.kpi .v{font-size:clamp(28px,3.4vw,40px);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi .l{color:var(--muted);font-size:14px}
+.vs{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;background:var(--surface);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:13px;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.win{font-weight:700}
+.tablewrap{overflow-x:auto;max-width:100%}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:12px;align-items:center}
+.bar .lbl{font-size:14px}
+.track{display:grid;gap:4px}
+.fill{height:12px;border-radius:6px;position:relative}
+.fill.go{background:var(--go)} .fill.py{background:var(--py)}
+.fill span{position:absolute;right:-42px;top:-4px;font-size:12px;color:var(--ink);width:38px}
+.legend{display:flex;gap:16px;font-size:14px;color:var(--muted);margin-bottom:12px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.timeline{position:relative;margin-top:12px}
+.tl-row{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:center;margin:10px 0}
+.tl-track{position:relative;height:28px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.tl-seg{position:absolute;top:3px;bottom:3px;border-radius:5px;color:#fff;font-size:12px;padding:0 8px;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
+.tl-seg.go{background:var(--go)} .tl-seg.py{background:var(--py)} .tl-seg.rv{background:var(--accent)}
+.axis{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-left:122px}
+.note{font-size:14px;color:var(--muted);margin-top:18px;max-width:80ch}
+.sev{font-weight:700;color:var(--bad)}
+.ok{color:var(--ok);font-weight:600}
+a{color:var(--accent);text-underline-offset:2px}
+.src{margin-top:10px;font-size:13px;color:var(--muted)}
+.shot{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px}
+.shot img{display:block;width:100%;height:auto;border-radius:8px;background:#fff}
+.shot figcaption{margin-top:8px;font-size:13px;color:var(--muted)}
+code{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--line);padding:1px 5px;border-radius:4px}
+.big{font-size:clamp(52px,9vw,110px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+nav{position:fixed;bottom:16px;right:16px;display:flex;gap:6px;z-index:5}
+nav button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;width:38px;height:38px;font-size:16px;cursor:pointer}
+@media (max-width:640px){
+  section{padding:48px 16px}
+  .bar{grid-template-columns:1fr}
+  .fill span{right:auto;left:calc(100% + 6px)}
+  .tl-row{grid-template-columns:70px 1fr} .axis{margin-left:82px}
+}
+.cover{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:48px}
+.cover h1{margin:0;flex:1;text-align:left}
+.cover .author{flex:0 0 auto;width:min(460px,42vw);height:auto;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.18)}
+@media (max-width:760px){.cover{flex-direction:column-reverse;gap:24px}.cover .author{width:min(320px,80vw)}}
+.method .card{padding:26px 28px}
+.method .card h3{font-size:22px;margin-bottom:16px}
+.method .card li{font-size:19px;margin:10px 0;line-height:1.4}
+.method .fact{display:flex;flex-direction:column;gap:2px;margin:0 0 16px}
+.method .fact .k{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.method .fact .v{font-size:24px;font-weight:600;line-height:1.3}
+.method .stacks{display:grid;gap:10px;margin-top:24px;font-size:18px}
+.method .stacks .tag{display:inline-block;min-width:76px;margin-right:12px;font-weight:700}
+.method .tag.go{color:var(--go)} .method .tag.py{color:var(--py)}
+.mini td{vertical-align:top}
+.mini td .src{font-weight:400;margin-top:4px}
+.mini .num{font-size:18px}
+</style>
+</head>
+<body>
+
+<section id="s1" class="cover">
+  <h1><span class="go">Go</span> vs <span class="py">Python</span>:<br>два AI-агента пишут один backend</h1>
+  <img class="author" src="assets/author.jpg" alt="Автор доклада">
+</section>
+
+<section id="s2" class="method">
+  <div class="n">02</div>
+  <h2>Методика</h2>
+  <div class="two">
+    <div class="card">
+      <h3>Разработчики</h3>
+      <div class="fact"><span class="k">Модель</span><span class="v">Claude Opus 5.5</span></div>
+      <div class="fact"><span class="k">Промт</span><span class="v">Один и тот же, отличается только язык: Go или Python</span></div>
+    </div>
+  </div>
+  <div class="stacks">
+    <div><span class="tag go">Go</span>chi · pgx · squirrel · goose · образ distroless</div>
+    <div><span class="tag py">Python</span>FastAPI · asyncpg · Pydantic v2 · SQLAlchemy/Alembic · uv · образ python-slim</div>
+  </div>
+  <p class="note">Стеки агенты выбрали сами.</p>
+</section>
+
+<section id="s3">
+  <div class="n">03</div>
+  <h2>Хронология</h2>
+  <p class="lead">Go-агент закончил на 10,6 минуты раньше. Каждый ревьюер работал около 5–6 минут.</p>
+  <div class="timeline">
+    <div class="axis"><span>12:57</span><span>13:30</span><span>14:00</span><span>14:30</span></div>
+    <div class="tl-row"><div class="go"><b>Go</b></div><div class="tl-track"><div class="tl-seg go" style="left:0;width:81.3%">разработка · 73,2 мин</div></div></div>
+    <div class="tl-row"><div class="py"><b>Python</b></div><div class="tl-track"><div class="tl-seg py" style="left:0;width:93.1%">разработка · 83,8 мин</div></div></div>
+    <div class="tl-row"><div style="color:var(--accent)"><b>Ревью</b></div><div class="tl-track"><div class="tl-seg rv" style="left:93.6%;width:6.4%" title="14:21–14:27"></div></div></div>
+  </div>
+  <div class="grid" style="margin-top:24px">
+    <div class="card"><b>12:57</b> старт обоих агентов</div>
+    <div class="card"><b class="go">14:10</b> Go сдал работу</div>
+    <div class="card"><b class="py">14:21</b> Python сдал работу, запуск ревью</div>
+    <div class="card"><b style="color:var(--accent)">14:27</b> обе оценки готовы</div>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="n">04</div>
+  <h2>Скорость и стоимость</h2>
+  <p class="lead">Python работал дольше, но потратил на 30% меньше токенов: меньше вызовов, короче контекст.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Метрика</th><th class="num">Go</th><th class="num">Python</th></tr>
+    <tr><td>Время разработки</td><td class="num win go">73,2 мин</td><td class="num py">83,8 мин</td></tr>
+    <tr><td>Вызовы API модели</td><td class="num go">135</td><td class="num win py">116</td></tr>
+    <tr><td>Вызовы инструментов (почти все — Bash)</td><td class="num go">135</td><td class="num win py">116</td></tr>
+    <tr><td>Сгенерировано токенов (output)</td><td class="num go">262 025</td><td class="num win py">207 734</td></tr>
+    <tr><td>Записано в кеш контекста</td><td class="num go">684 371</td><td class="num win py">508 411</td></tr>
+    <tr><td>Прочитано из кеша</td><td class="num go">29,9 млн</td><td class="num win py">20,9 млн</td></tr>
+    <tr><td><b>Всего токенов</b></td><td class="num go"><b>30,9 млн</b></td><td class="num win py"><b>21,6 млн</b></td></tr>
+    <tr><td><b>Стоимость по ценам API</b>*</td><td class="num go"><b>≈ $14,7</b></td><td class="num win py"><b>≈ $10,9</b></td></tr>
+    <tr><td>Размер контекста на финише</td><td class="num go">351 тыс.</td><td class="num py">289 тыс.</td></tr>
+  </table></div>
+  <p class="note">Больше 95% «всех токенов» — повторное чтение контекста из кеша на каждом шаге. Поэтому стоимость определяют число шагов и длина контекста, а не объём написанного кода. Ревью: Go — 4,4 млн токенов и 40 вызовов, Python — 3,6 млн токенов и 31 вызов.</p>
+  <p class="note">* Прайс Claude Opus 5.5 на ноябрь 2026, за 1 млн токенов: вход $4, генерация $20, запись в кеш $5, чтение из кеша $0,20. В среднем выходит ≈ $0,5 за 1 млн токенов.</p>
+</section>
+
+<section id="s5">
+  <div class="n">05</div>
+  <h2>Объём кода</h2>
+  <p class="lead">Go-реализация примерно на 27% длиннее в коде и на 47% — в тестах. Сказывается многословность языка: явная обработка ошибок и маппинг строк.</p>
+  <div class="legend"><span><i class="dot" style="background:var(--go)"></i>Go</span><span><i class="dot" style="background:var(--py)"></i>Python</span></div>
+  <div class="bars" style="max-width:820px">
+    <div class="bar"><div class="lbl">Рабочий код</div><div class="track">
+      <div class="fill go" style="width:85%"><span>4 350</span></div>
+      <div class="fill py" style="width:66.9%"><span>3 424</span></div></div></div>
+    <div class="bar"><div class="lbl">Тесты</div><div class="track">
+      <div class="fill go" style="width:35.6%"><span>1 821</span></div>
+      <div class="fill py" style="width:24.2%"><span>1 241</span></div></div></div>
+    <div class="bar"><div class="lbl">SQL-миграции</div><div class="track">
+      <div class="fill go" style="width:3.4%"><span>176</span></div>
+      <div class="fill py" style="width:3.9%"><span>201</span></div></div></div>
+  </div>
+  <div class="grid" style="margin-top:24px">
+    <div class="card"><h3>Файлов исходников</h3><span class="go">46 .go</span> · <span class="py">58 .py</span></div>
+    <div class="card"><h3>openapi.yaml</h3><span class="go">651 строка, вручную</span> · <span class="py">2 996 строк, генерируется из кода</span></div>
+    <div class="card"><h3>Документация</h3>около 11 тыс. строк Markdown у каждого, основная часть — <code>QUERY_PLANS.md</code></div>
+  </div>
+  <p class="note">Считались непустые строки без комментариев. vendor/, .venv, lock-файлы и сгенерированные результаты нагрузочного теста исключены.</p>
+</section>
+
+<section id="s6">
+  <div class="n">06</div>
+  <h2>Тесты и проверки</h2>
+  <p class="lead">Оба агента довели всё до зелёного. Ревьюеры перезапустили проверки сами и получили те же результаты.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Проверка</th><th class="num">Go</th><th class="num">Python</th></tr>
+    <tr><td>Тесты</td><td class="num">50 функций + 6 подтестов, 10 пакетов ok</td><td class="num">139 passed (70 unit + 69 integration), 8,6 с</td></tr>
+    <tr><td>Покрытие бизнес-логики</td><td class="num">92,5%</td><td class="num win">97,0%</td></tr>
+    <tr><td>Линтеры</td><td class="num">golangci-lint · go vet: 0 замечаний</td><td class="num">ruff + mypy --strict: 0 замечаний</td></tr>
+    <tr><td><code>EXPLAIN</code> на 1 млн книг</td><td class="num ok">40/40 без Seq Scan</td><td class="num ok">40/40 без Seq Scan</td></tr>
+    <tr><td>Повтор у ревьюера</td><td class="num ok">✓ прошло</td><td class="num ok">✓ прошло</td></tr>
+    <tr><td>Итераций до зелёного</td><td class="num">seed ×3, explain ×5, integration ×5</td><td class="num">~7 по тестам + 4 по производительности</td></tr>
+  </table></div>
+  <p class="note">Оба агента независимо наступили на один и тот же подводный камень PostgreSQL: <code>pg_get_indexdef</code> для партиционированной таблицы возвращает <code>ON ONLY</code>, и пересобранные после seed индексы оставались пустыми «заглушками». Оба нашли и исправили это сами.</p>
+</section>
+
+<section id="s7">
+  <div class="n">07</div>
+  <h2>Производительность</h2>
+  <p class="lead">Цифры показательные, но сравнивать их напрямую нельзя: разные профили нагрузки, общий перегруженный хост.</p>
+  <div class="two">
+    <div class="card"><h3>Seed: около 6 млн строк (книги, авторы, связи, ISBN, аудит)</h3>
+      <div class="tablewrap"><table>
+        <tr><th></th><th class="num">Go</th><th class="num">Python</th></tr>
+        <tr><td>COPY</td><td class="num win">9,0 с · 660k rows/s</td><td class="num">15,5 с · 371k rows/s</td></tr>
+        <tr><td>Индексы + FK</td><td class="num">33 с</td><td class="num win">24,1 с</td></tr>
+        <tr><td>VACUUM ANALYZE</td><td class="num">25 с</td><td class="num win">12,1 с</td></tr>
+        <tr><td><b>Итого</b></td><td class="num">~68 с</td><td class="num win">52,0 с*</td></tr>
+      </table></div>
+      <p class="note">* Python — с PGDATA в tmpfs (RAM), Go — на Docker-томе. COPY-загрузка у Go в 1,8 раза быстрее, а остальное время уходит на сам PostgreSQL.</p>
+    </div>
+    <div class="card"><h3>k6, нагрузка на API</h3>
+      <div class="tablewrap"><table>
+        <tr><th></th><th class="num">Go</th><th class="num">Go</th><th class="num">Python</th></tr>
+        <tr><td>Пользователи k6</td><td class="num">8</td><td class="num">32</td><td class="num">64</td></tr>
+        <tr><td>RPS</td><td class="num">321</td><td class="num">365</td><td class="num">560</td></tr>
+        <tr><td>p50</td><td class="num">5,1 мс</td><td class="num">13,4 мс</td><td class="num">95 мс</td></tr>
+        <tr><td>p95</td><td class="num">129 мс</td><td class="num">508 мс</td><td class="num">266 мс</td></tr>
+        <tr><td>p99</td><td class="num">443 мс</td><td class="num">1 526 мс</td><td class="num">412 мс</td></tr>
+        <tr><td>Ошибки</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td></tr>
+      </table></div>
+      <p class="note">Во время прогона Go средняя загрузка хоста была 20–190, в смеси больше тяжёлого поиска. Python гонял тест на БД в RAM. Медиана у Go ниже, но хвосты (p95/p99) в обоих случаях упираются в поиск по <code>/search</code> и в CPU.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s8">
+  <div class="n">08</div>
+  <h2>Эксплуатация</h2>
+  <div class="grid" style="margin-top:12px">
+    <div class="card kpi"><div class="l">Docker-образ приложения</div>
+      <div class="vs"><span class="v go">16 МБ</span><span class="muted">vs</span><span class="v py">255 МБ</span></div>
+      <div class="l">distroless static против python-slim + venv: разница в 16 раз</div></div>
+    <div class="card"><h3>Общее у обоих</h3><ul>
+      <li>Multi-stage, non-root, healthcheck</li>
+      <li>Отдельные сервисы migrate и seed в compose</li>
+      <li><code>/healthz</code>, <code>/readyz</code>, <code>/metrics</code>, JSON-логи</li>
+      <li>Ошибки в формате RFC 7807, заголовок <code>X-User-Id</code> через middleware</li>
+    </ul></div>
+    <div class="card"><h3>Различия</h3><ul>
+      <li><span class="go">Go</span>: vendor/ для офлайн-сборки, линтер в Docker</li>
+      <li><span class="py">Python</span>: OpenAPI генерируется из кода, тест ловит расхождения</li>
+      <li><span class="py">Python</span>: <code>make test/lint</code> требуют uv на хосте</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="s9" class="mini">
+  <div class="n">09</div>
+  <h2>Мини-задачи: условия и результаты</h2>
+  <p class="lead">Три небольших скрипта, одинаковые ТЗ и данные для обоих языков. Обе реализации каждой задачи прошли скрытую проверку. Различаются время и цена: Python — <b class="py">31 мин и 6,6 млн токенов</b>, Go — <b class="go">47 мин и 9,8 млн</b>.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Задача</th><th class="num">Время, мин</th><th class="num">Токены, млн</th><th class="num">Стоимость, $</th><th class="num">Код, строк</th><th class="num">Скрытая проверка</th></tr>
+    <tr><td><b>📊 Excel → графики</b><div class="src">5 тыс. строк, 400 «грязных»; 8 правил очистки, 5 PNG и HTML-отчёт</div></td>
+      <td class="num"><span class="py win">6,7</span> / <span class="go">22,2</span></td><td class="num"><span class="py win">1,65</span> / <span class="go">5,0</span></td><td class="num"><span class="py win">1,68</span> / <span class="go">3,10</span></td><td class="num"><span class="py">810</span> / <span class="go">1 429</span></td><td class="num ok">75/75 · 75/75</td></tr>
+    <tr><td><b>✉️ Рассылка по расписанию</b><div class="src">cron, таймзоны, вложения, повторы SMTP, без дублей, Docker + Mailpit</div></td>
+      <td class="num"><span class="py">12,7</span> / <span class="go">11,4</span></td><td class="num"><span class="py">2,69</span> / <span class="go">2,53</span></td><td class="num"><span class="py">2,17</span> / <span class="go">2,27</span></td><td class="num"><span class="py">984</span> / <span class="go">1 331</span></td><td class="num ok">11/11 · 11/11</td></tr>
+    <tr><td><b>🤬 Мат-фильтр на regexp</b><div class="src">корни во всех формах, обход маскировки, без ложных срабатываний</div></td>
+      <td class="num"><span class="py">11,9</span> / <span class="go">13,7</span></td><td class="num"><span class="py">2,30</span> / <span class="go">2,30</span></td><td class="num"><span class="py">2,20</span> / <span class="go">2,43</span></td><td class="num"><span class="py">477</span> / <span class="go">707</span></td><td class="num">F1 <span class="py">0,983</span> / <b class="go">0,992</b></td></tr>
+    <tr><td><b>Итого</b></td><td class="num"><b><span class="py">31,3</span> / <span class="go">47,3</span></b></td><td class="num"><b><span class="py">6,64</span> / <span class="go">9,83</span></b></td><td class="num"><b><span class="py">6,05</span> / <span class="go">7,80</span></b></td><td class="num"><b><span class="py">2 271</span> / <span class="go">3 467</span></b></td><td class="num">Go-код длиннее на 53%</td></tr>
+  </table></div>
+  <p class="note">В ячейках: <span class="py">Python</span> / <span class="go">Go</span>. Скрытые проверки агенты не видели: эталонный <code>summary.json</code> (75 значений), 11 проверок писем через API Mailpit, 120 размеченных фраз (60 мат / 60 ловушек). Стоимость — по прайсу Claude Opus 5.5, как на слайде «Скорость и стоимость».</p>
+</section>
+
+<section id="s10">
+  <div class="n">10</div>
+  <h2>Мини-задачи: что повлияло</h2>
+  <p class="lead">Разницу делает не язык как таковой, а готовые библиотеки под задачу.</p>
+  <div class="two">
+    <div class="card"><h3>📊 Excel: Python в 3,3 раза быстрее и в 3 раза дешевле</h3><ul>
+      <li>openpyxl и matplotlib закрыли задачу «из коробки»: 29 вызовов инструментов, 6,7 минуты</li>
+      <li>В gonum/plot нет кольцевой диаграммы, Go-агент рисовал её сам. Ещё была паника на пустых данных и ручная вёрстка подписей: 67 вызовов</li>
+      <li>Минус Go из-за окружения: локальный golangci-lint несовместим с go1.27</li>
+    </ul></div>
+    <div class="card"><h3>✉️ Рассылка: паритет · 🤬 Мат-фильтр: Go чуть точнее</h3><ul>
+      <li>Оба сервиса прошли 11/11 проверок. Go-агент нашёл у себя гонку благодаря <code>go test -race</code></li>
+      <li>В regexp Go (RE2) нет lookahead/lookbehind, поэтому агент проверял слово целиком. Всё равно поймал «бл@ть», которое пропустил Python</li>
+      <li>Скорость фильтра: Go ~220 тыс. строк/с, Python ~75 тыс. Оба ошиблись на «Ебенезер Скрудж»</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="s11">
+  <div class="n">11</div>
+  <h2>Что говорят исследования: <span class="py">за Python</span></h2>
+  <p class="lead">Почему AI-агенту в среднем проще писать на Python: публичные данные 2022–2026 годов.</p>
+  <div class="two">
+    <div class="card"><h3>Больше обучающих данных</h3>
+      Датасет The Stack v2 после дедупликации: Python — <b>233 ГБ</b>, Go — <b>55 ГБ</b>, в 4,3 раза меньше. В v1: 80 против 35 ГБ.
+      <div class="src"><a href="https://arxiv.org/abs/2402.19173" target="_blank" rel="noopener">StarCoder2 / The Stack v2</a> · <a href="https://arxiv.org/abs/2211.15533" target="_blank" rel="noopener">The Stack v1</a></div></div>
+    <div class="card"><h3>Выше доля решённых реальных задач</h3>
+      Multi-SWE-bench (NeurIPS 2025): Python и Java обгоняют Go и Rust. «Python? Solid. C/Rust/Go? Still a nightmare». SWE-bench Multilingual: на Go решено 31% задач.
+      <div class="src"><a href="https://arxiv.org/abs/2504.02605" target="_blank" rel="noopener">Multi-SWE-bench</a> · <a href="https://www.swebench.com/multilingual.html" target="_blank" rel="noopener">SWE-bench Multilingual</a></div></div>
+    <div class="card"><h3>Меньше токенов на решение</h3>
+      Северо-Восточный университет (2026): менее популярные языки стоят заметно дороже Python при той же доле успешных решений, на Python агент почти всегда попадает с первой попытки. Эксперимент с Claude Code: Python тратил меньше токенов в 6 из 12 задач, Go — в 3.
+      <div class="src"><a href="https://arxiv.org/abs/2607.22807" target="_blank" rel="noopener">Tokenmaxxing, SPLASH 2026</a> · <a href="https://github.com/vikas-t/llms-token-perf" target="_blank" rel="noopener">llms-token-perf</a></div></div>
+    <div class="card"><h3>Бенчмарки и агенты заточены под Python</h3>
+      HumanEval, MBPP, SWE-bench изначально только на Python. Авторы Multi-SWE-bench называют «смещение методов в сторону Python» одной из причин разрыва.
+      <div class="src"><a href="https://arxiv.org/abs/2208.08227" target="_blank" rel="noopener">MultiPL-E</a></div></div>
+  </div>
+</section>
+
+<section id="s12">
+  <div class="n">12</div>
+  <h2>Что говорят исследования: <span class="go">за Go</span></h2>
+  <p class="lead">Где Python уступает: ошибки, которые компилятор Go ловит до запуска, и проблемы экосистемы.</p>
+  <div class="two">
+    <div class="card"><h3>Типы ловят основные ошибки LLM</h3>
+      <b>94%</b> ошибок компиляции в коде от LLM — провалы проверки типов (PLDI 2025, на TypeScript). В Python такие ошибки проявляются только во время выполнения.
+      <div class="src"><a href="https://arxiv.org/abs/2504.09246" target="_blank" rel="noopener">Type-Constrained Code Generation</a> · <a href="https://github.blog/ai-and-ml/llms/why-ai-is-pushing-developers-toward-typed-languages/" target="_blank" rel="noopener">GitHub Octoverse 2025</a></div></div>
+    <div class="card"><h3>Компилятор как страховочная сетка</h3>
+      Google: статическая типизация Go — «автоматическая страховочная сетка для агентного кода», а выдуманное поле структуры отвергается сразу. Плюс быстрая сборка, <code>gofmt</code> и «один способ сделать».
+      <div class="src"><a href="https://developers.googleblog.com/why-go-is-an-ideal-language-for-ai-assisted-software-engineering/" target="_blank" rel="noopener">Google Developers Blog</a> · <a href="https://getbruin.com/blog/go-is-the-best-language-for-agents/" target="_blank" rel="noopener">Bruin</a></div></div>
+    <div class="card"><h3>Устаревшие API в Python-библиотеках</h3>
+      Модели используют устаревшие API в <b>25–38%</b> случаев на 8 популярных библиотеках (ICSE 2025). Без документации исполняется лишь 42,6% кода под нужную версию библиотеки. Гарантия совместимости Go 1 эту проблему смягчает (наш вывод).
+      <div class="src"><a href="https://arxiv.org/abs/2406.09834" target="_blank" rel="noopener">ICSE 2025</a> · <a href="https://arxiv.org/abs/2604.09515" target="_blank" rel="noopener">arXiv 2604.09515</a></div></div>
+    <div class="card"><h3>Выдуманные пакеты и развёртывание</h3>
+      <b>19,7%</b> пакетов, которые рекомендуют модели, не существуют (USENIX Security 2025, Python и JS). Злоумышленники регистрируют пакеты с такими именами (slopsquatting). Модули Go привязаны к URL репозитория и проверяются по <code>go.sum</code>. Сборка — один статический бинарник.
+      <div class="src"><a href="https://www.usenix.org/system/files/conference/usenixsecurity25/sec25cycle1-prepub-742-spracklen.pdf" target="_blank" rel="noopener">USENIX Security 2025</a></div></div>
+  </div>
+  <p class="note">Слабые места Go для агентов: многословность (больше кода и токенов) и гонки данных. 41% гонок в Go-коде Uber — захват переменной по ссылке в горутине, компилятор их не ловит (<a href="https://arxiv.org/abs/2204.00764" target="_blank" rel="noopener">PLDI 2022</a>).</p>
+</section>
+
+<section id="s13">
+  <div class="n">13</div>
+  <h2>Сверка с нашим экспериментом</h2>
+  <p class="lead">Часть выводов исследований подтвердилась, часть — нет: сильная модель 2026 года сокращает разрыв.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Тезис из исследований</th><th>Что увидели мы</th><th class="num">Совпало?</th></tr>
+    <tr><td>На Python агент тратит меньше токенов</td><td>Python: 21,6 млн, Go: 30,9 млн (+43%)</td><td class="num ok">да</td></tr>
+    <tr><td>На Go код многословнее</td><td>Код Go на 27% длиннее, тесты — на 47%</td><td class="num ok">да</td></tr>
+    <tr><td>На Go агенты справляются хуже (Multi-SWE-bench)</td><td>Оценки 8,0 (Go) и 7,8 (Python), Go закончил на 10 мин раньше</td><td class="num sev">нет*</td></tr>
+    <tr><td>Типы ловят ошибки до запуска</td><td>В Python ревьюер нашёл ошибки 500 на граничном вводе. В Go — логическую ошибку лимита курсора, которую типы не ловят</td><td class="num">частично</td></tr>
+    <tr><td>У Go проще эксплуатация</td><td>Образ 16 МБ против 255 МБ, зависимости собраны офлайн из vendor/</td><td class="num ok">да</td></tr>
+  </table></div>
+  <p class="note">* Бенчмарки 2024–25 годов мерили более слабые модели на чужих репозиториях. У нас новый проект с нуля, одна модель Opus 5.5 и n = 1, поэтому вывод предварительный. Полный список источников — <code>experiment/RESEARCH.md</code>.</p>
+</section>
+
+<section id="s14">
+  <div class="n">14</div>
+  <h2>Почему <span class="py">Python</span> удобнее для MVP</h2>
+  <p class="lead">На этапе MVP скорость изменений и простота отладки важнее размера образа и задержек. Здесь Python выигрывает.</p>
+  <div class="grid">
+    <div class="card"><h3>Читаемый и короткий код</h3>
+      Нет <code>if err != nil</code> после каждого вызова и ручного маппинга строк в структуры. В нашем эксперименте реализация на Python на 27% короче при том же функционале. Код легче читать на ревью, в том числе не-разработчикам: аналитикам, продакт-менеджерам.</div>
+    <div class="card"><h3>Интерпретатор прямо в контейнере</h3>
+      В Python-образе есть интерпретатор и shell. Можно выполнить любой скрипт или открыть REPL без пересборки: <code>docker compose exec app python -c "…"</code>, разовая миграция данных, починка записи, выгрузка CSV. Go-образ (distroless) не содержит даже shell: проверку healthcheck пришлось встроить в сам бинарник, а любой новый скрипт требует пересборки образа.</div>
+    <div class="card"><h3>Быстрый цикл правок</h3>
+      Нет шага компиляции: правка → <code>uvicorn --reload</code> → результат за секунды. Скрипты seed, админки и отладки пишутся на том же языке, без отдельного <code>cmd/</code> и сборки.</div>
+    <div class="card"><h3>OpenAPI и валидация из коробки</h3>
+      FastAPI и Pydantic генерируют Swagger из кода. Python-агент получил спецификацию автоматически и добавил тест на расхождения. Go-агент написал 651 строку YAML вручную.</div>
+    <div class="card"><h3>Экосистема для данных и AI</h3>
+      pandas, numpy, SDK всех LLM-провайдеров, Jupyter для исследования данных. По GitHub Octoverse 2025, на Python почти половина новых AI-репозиториев (582 тыс.). Если MVP завтра понадобится аналитика или LLM-функция, она добавляется без второго языка.</div>
+    <div class="card"><h3>Проще найти людей и помощь</h3>
+      Python входит в двойку самых популярных языков на GitHub (+850 тыс. контрибьюторов за год). На него больше обучающих данных у моделей, поэтому агенты увереннее пишут на нём новый код.</div>
+  </div>
+  <p class="note"><b>Когда переходить на Go:</b> MVP подтвердился и упёрся в производительность, память, размер образа или число сервисов. Тогда горячие пути переписывают на Go, а Python остаётся для админки, скриптов и аналитики.</p>
+</section>
+
+<section id="s15">
+  <div class="n">15</div>
+  <h2>Выводы</h2>
+  <div class="grid" style="margin-top:12px">
+    <div class="card"><h3>1. Язык почти не влияет на результат</h3>Итоговые оценки 8,0 и 7,8, архитектура совпадает. Решающий фактор — модель и ТЗ, а не язык.</div>
+    <div class="card"><h3>2. Go быстрее, Python дешевле</h3>Большой сервис: Go закончил на 13% быстрее, Python потратил на 30% меньше токенов. Код на Go на 27% длиннее, в мини-задачах — на 53%.</div>
+    <div class="card"><h3>2а. Мелкие скрипты — за Python</h3>В задачах с готовыми библиотеками (Excel, графики) Python в 3 раза быстрее и дешевле при одинаковом качестве. В сервисных задачах (рассылка) разницы нет, а в regexp-фильтре Go даже чуть точнее.</div>
+    <div class="card"><h3>3. У Go — артефакт эксплуатации</h3>Образ 16 МБ против 255 МБ, COPY-загрузка seed в 1,8 раза быстрее, ниже медианная задержка. Это плюсы рантайма, а не агента.</div>
+    <div class="card"><h3>4. Python лучше в тестах и проверке типов</h3>Покрытие 97%, mypy --strict, OpenAPI генерируется из кода с тестом на расхождения.</div>
+    <div class="card"><h3>5. Ревью обязательно</h3>Оба агента отчитались «всё зелёное», но ревьюеры за 5–6 минут нашли воспроизводимые баги, приводящие к 500/400.</div>
+    <div class="card"><h3>6. ТЗ на 10 млрд — с оговорками</h3>Поиск средствами одного PostgreSQL на таком объёме не масштабируется. Оба агента вынесли решение в документацию.</div>
+  </div>
+  <p class="note">Артефакты: <code>go_impl/</code>, <code>python_impl/</code>, журнал эксперимента <code>experiment/LOG.md</code>, метрики <code>experiment/*_metrics.json</code>, ревью <code>experiment/review_*.md</code>, публичные исследования <code>experiment/RESEARCH.md</code>.</p>
+</section>
+
+<nav><button id="prev" aria-label="Назад">↑</button><button id="next" aria-label="Вперёд">↓</button></nav>
+<script>
+const s=[...document.querySelectorAll('section')];
+const cur=()=>{let y=scrollY+innerHeight/3;let i=0;s.forEach((e,k)=>{if(e.offsetTop<=y)i=k});return i};
+const go=d=>{const i=Math.max(0,Math.min(s.length-1,cur()+d));s[i].scrollIntoView({behavior:'smooth'})};
+document.getElementById('prev').onclick=()=>go(-1);
+document.getElementById('next').onclick=()=>go(1);
+addEventListener('keydown',e=>{
+  if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();go(1)}
+  if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();go(-1)}
+});
+</script>
+</body>
+</html>

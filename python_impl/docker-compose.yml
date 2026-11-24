@@ -1,0 +1,84 @@
+name: lib_python
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql://library:library@postgres:5432/library
+  LOG_LEVEL: INFO
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: lib_python-postgres
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    environment:
+      POSTGRES_USER: library
+      POSTGRES_PASSWORD: library
+      POSTGRES_DB: library
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    ports:
+      - "15432:5432"
+    shm_size: 1gb
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U library -d library"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build: .
+    image: lib_python-app:latest
+    container_name: lib_python-migrate
+    command: ["alembic", "upgrade", "head"]
+    environment: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    image: lib_python-app:latest
+    container_name: lib_python-app
+    environment:
+      <<: *app-env
+      DB_POOL_MIN: "8"
+      DB_POOL_MAX: "12"
+      WEB_CONCURRENCY: "4"
+    ports:
+      - "18001:8000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  seed:
+    image: lib_python-app:latest
+    container_name: lib_python-seed
+    profiles: ["tools"]
+    command: ["python", "-m", "library.seed"]
+    environment:
+      <<: *app-env
+      SEED_BOOKS: ${SEED_BOOKS:-1000000}
+      SEED_AUTHORS: ${SEED_AUTHORS:-200000}
+      SEED_RANDOM: ${SEED_RANDOM:-42}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  k6:
+    image: grafana/k6:0.54.0
+    container_name: lib_python-k6
+    profiles: ["bench"]
+    command: ["run", "--summary-export=/bench/results/summary.json", "/bench/k6.js"]
+    environment:
+      BASE_URL: http://app:8000
+    volumes:
+      - ./bench:/bench
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+    name: lib_python_pgdata

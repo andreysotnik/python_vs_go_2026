@@ -1,0 +1,71 @@
+{
+ "tokens": {
+  "input_tokens": 232,
+  "output_tokens": 207734,
+  "cache_creation_input_tokens": 508411,
+  "cache_read_input_tokens": 20918697,
+  "api_calls": 116,
+  "all_tokens": 21635074
+ },
+ "tool_calls": {
+  "Bash": 115,
+  "SubagentHandback": 1
+ },
+ "tool_calls_total": 116,
+ "first_ts": "2026-11-17T12:56:58.705Z",
+ "last_ts": "2026-11-17T14:20:49.308Z",
+ "loc_by_lang": {
+  "Config": {
+   "files": 2,
+   "lines": 61,
+   "code": 55
+  },
+  "Docker": {
+   "files": 1,
+   "lines": 25,
+   "code": 22
+  },
+  "Make": {
+   "files": 1,
+   "lines": 57,
+   "code": 40
+  },
+  "TOML": {
+   "files": 1,
+   "lines": 78,
+   "code": 68
+  },
+  "Markdown": {
+   "files": 5,
+   "lines": 11708,
+   "code": 11530
+  },
+  "YAML": {
+   "files": 3,
+   "lines": 3094,
+   "code": 3074
+  },
+  "Python": {
+   "files": 58,
+   "lines": 5604,
+   "code": 4665
+  },
+  "SQL": {
+   "files": 2,
+   "lines": 243,
+   "code": 201
+  },
+  "JavaScript": {
+   "files": 1,
+   "lines": 83,
+   "code": 74
+  },
+  "JSON": {
+   "files": 1,
+   "lines": 883,
+   "code": 883
+  }
+ },
+ "main_lang_prod_code": 3424,
+ "main_lang_test_code": 1241
+}

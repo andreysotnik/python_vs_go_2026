@@ -1,0 +1,102 @@
+name: lib_go
+
+x-app: &app
+  build:
+    context: .
+  image: lib_go-app:latest
+  environment: &app-env
+    DATABASE_URL: postgres://library:library@postgres:5432/library?sslmode=disable
+    LOG_LEVEL: ${LOG_LEVEL:-info}
+    DB_MAX_CONNS: ${DB_MAX_CONNS:-32}
+    DB_STATEMENT_TIMEOUT: ${DB_STATEMENT_TIMEOUT:-5s}
+
+services:
+  postgres:
+    image: postgres:16
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    environment:
+      POSTGRES_USER: library
+      POSTGRES_PASSWORD: library
+      POSTGRES_DB: library
+    ports:
+      - "25432:5432"
+    shm_size: 1g
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U library -d library"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    <<: *app
+    command: ["migrate"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    <<: *app
+    command: ["serve"]
+    environment:
+      <<: *app-env
+      HTTP_ADDR: ":8080"
+      NODE_ID: "1"
+    ports:
+      - "28002:8080"
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  seed:
+    <<: *app
+    profiles: ["seed"]
+    command: ["seed"]
+    environment:
+      <<: *app-env
+      SEED_BOOKS: ${SEED_BOOKS:-1000000}
+      SEED_AUTHORS: ${SEED_AUTHORS:-200000}
+      SEED_USERS: ${SEED_USERS:-100}
+      SEED_RANDOM: ${SEED_RANDOM:-42}
+      SEED_WORKERS: ${SEED_WORKERS:-8}
+      SEED_BATCH: ${SEED_BATCH:-50000}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  test:
+    # No image build: the source tree is mounted read-only and the Go build cache lives in tmpfs
+    # (keeps the shared Docker disk untouched). Dependencies come from ./vendor (offline).
+    image: golang:1.26-alpine
+    profiles: ["test"]
+    working_dir: /src
+    volumes:
+      - ./:/src:ro
+    tmpfs:
+      - /tmp:size=3g,exec
+    environment:
+      TEST_DATABASE_URL: postgres://library:library@postgres:5432/postgres?sslmode=disable
+      CGO_ENABLED: "0"
+      GOFLAGS: -mod=vendor
+      GOTOOLCHAIN: local
+      GOCACHE: /tmp/go-cache
+      GOTMPDIR: /tmp
+      HOME: /tmp
+    command:
+      - sh
+      - -c
+      - >-
+        go test -count=1 -p 1 -covermode=atomic
+        -coverpkg=$$(go list ./internal/... | grep -v -e /seed -e /explain -e /dbx -e /migrate -e /integration | paste -sd, -)
+        -coverprofile=/tmp/cover.out ./... &&
+        echo "business-logic coverage:" && go tool cover -func=/tmp/cover.out | tail -n 1
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

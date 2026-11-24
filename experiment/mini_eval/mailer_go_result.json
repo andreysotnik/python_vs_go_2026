@@ -1,0 +1,55 @@
+{
+ "steps": [
+  {
+   "step": "Чт 09:00 МСК",
+   "rc": 0,
+   "expected_new": 2,
+   "got_new": 2,
+   "ok": true
+  },
+  {
+   "step": "повтор того же слота",
+   "rc": 0,
+   "expected_new": 0,
+   "got_new": 0,
+   "ok": true
+  },
+  {
+   "step": "Сб 09:00 МСК",
+   "rc": 0,
+   "expected_new": 1,
+   "got_new": 1,
+   "ok": true
+  },
+  {
+   "step": "Чт 05:00 МСК = 09:00 НСК",
+   "rc": 0,
+   "expected_new": 2,
+   "got_new": 2,
+   "ok": true
+  }
+ ],
+ "subjects": [
+  "Доброе утро, Новосибирск",
+  "Ежедневный отчёт за 2026-11-19",
+  "Пульс 2026-11-19 02:00 +00:00",
+  "Пульс 2026-11-19 06:00 +00:00",
+  "Пульс 2026-11-21 06:00 +00:00"
+ ],
+ "daily": {
+  "to": [
+   "boss@example.com",
+   "team@example.com"
+  ],
+  "attachments": [
+   "report.pdf"
+  ],
+  "subject": "Ежедневный отчёт за 2026-11-19",
+  "body_ok": true
+ },
+ "cc_ok": true,
+ "validate_bad_rc": 1,
+ "validate_good_rc": 0,
+ "passed": 11,
+ "total": 11
+}

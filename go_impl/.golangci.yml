@@ -1,0 +1,42 @@
+version: "2"
+run:
+  timeout: 5m
+  modules-download-mode: vendor
+linters:
+  default: standard   # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - bodyclose
+    - errorlint
+    - gocritic
+    - gosec
+    - misspell
+    - nilerr
+    - noctx
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - unparam
+  settings:
+    gosec:
+      excludes:
+        - G115 # integer overflow conversions: ids/limits are range-checked before conversion
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: var-naming
+        - name: indent-error-flow
+        - name: error-strings
+  exclusions:
+    presets: [comments, std-error-handling]
+    rules:
+      - path: _test\.go
+        linters: [gosec, noctx, bodyclose, errcheck, unparam, gocritic]
+      - path: internal/seed/
+        linters: [gosec] # math/rand is intentional: deterministic mock data
+formatters:
+  enable: [gofmt, goimports]
+  settings:
+    goimports:
+      local-prefixes: [github.com/example/worldlib]
