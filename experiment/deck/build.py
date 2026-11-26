@@ -145,7 +145,11 @@ def build_slides():
     t = Slide("Скорость и стоимость", "Python работал дольше, но потратил на 30% меньше токенов: меньше вызовов, короче контекст.",
               notes="Больше 95% «всех токенов» — повторное чтение контекста из кеша на каждом шаге. Поэтому стоимость "
                     "определяют число шагов и длина контекста, а не объём написанного кода. Ревью: Go — 4,4 млн токенов "
-                    "и 40 вызовов, Python — 3,6 млн токенов и 31 вызов.")
+                    "и 40 вызовов, Python — 3,6 млн токенов и 31 вызов. "
+                    "Почему Go быстрее, но дороже: Go-агент сделал больше шагов (135 против 116) с более длинным "
+                    "контекстом — отсюда больше токенов. Генерация у Go больше лишь на 26%, так что многословность кода "
+                    "объясняет малую часть. Зато шаги были короче (≈32 с против ≈43 с): вероятно, компилятор и быстрые "
+                    "go build / go test давали мгновенную обратную связь, поэтому по часам Go закончил раньше.")
     g = lambda v, w=False: C(R(v, GO, bold=w), align="r")
     p = lambda v, w=False: C(R(v, PY, bold=w), align="r")
     t.table(X0, 1.95, [3.9, 2.0, 2.0], [
@@ -158,13 +162,17 @@ def build_slides():
         [C(R("Всего токенов", bold=True)), g("30,9 млн", True), p("21,6 млн", True)],
         [C("Контекст на финише"), g("351 тыс."), p("289 тыс.")],
         [C(R("Стоимость по ценам API*", bold=True)), g("≈ $14,7", True), p("≈ $10,9", True)],
-    ], row_h=0.46, size=15)
+    ], row_h=0.42, size=15)
     rx, rw = 8.85, 3.88
-    t.card(rx, 1.95, rw, 2.0, None, [P(R("−30%", PY, bold=True), size=44, after=4),
-                                     P("токенов у Python: 21,6 млн против 30,9 млн", size=15)])
-    t.card(rx, 4.15, rw, 2.0, None, [P(R("$10,9", PY, bold=True), R("  vs  ", MUTED), R("$14,7", GO, bold=True), size=34, after=6),
+    t.card(rx, 1.95, rw, 1.75, None, [P(R("−30%", PY, bold=True), size=44, after=4),
+                                      P("токенов у Python: 21,6 млн против 30,9 млн", size=15)])
+    t.card(rx, 3.9, rw, 1.75, None, [P(R("$10,9", PY, bold=True), R("  vs  ", MUTED), R("$14,7", GO, bold=True), size=34, after=6),
                                      P(">95% токенов — дешёвое чтение из кеша", size=15)])
-    t.text(X0, 6.35, CW, 0.5, ["* Прайс Claude Opus 5.5 на ноябрь 2026, за 1 млн токенов: вход $4, генерация $20, "
+    t.text(X0, 5.85, CW, 0.55, [P(R("Почему Go быстрее, но дороже: ", GO, bold=True),
+                                  "Go-агент сделал больше шагов (135 против 116) с более длинным контекстом — отсюда больше "
+                                  "токенов. Но шаги были короче (≈32 с против ≈43 с): компилятор давал мгновенную обратную "
+                                  "связь, и по часам Go закончил раньше.")], size=13)
+    t.text(X0, 6.45, CW, 0.45, ["* Прайс Claude Opus 5.5 на ноябрь 2026, за 1 млн токенов: вход $4, генерация $20, "
                                 "запись в кеш $5, чтение из кеша $0,20. В среднем ≈ $0,5 за 1 млн токенов."],
            size=12, color=MUTED)
     s.append(t)
@@ -229,24 +237,34 @@ def build_slides():
 
     # 8. Эксплуатация
     t = Slide("Эксплуатация")
-    t.rect(X0, 1.6, 5.0, 4.95)
-    t.text(X0 + 0.4, 1.9, 4.2, 4.4, [
-        P(R("DOCKER-ОБРАЗ", MUTED, bold=True), size=13, after=14),
-        P(R("16 МБ", GO, bold=True), size=60, after=0),
-        P(R("против", MUTED), size=16, after=0),
-        P(R("255 МБ", PY, bold=True), size=60, after=14),
-        P("distroless static против python-slim + venv: разница в 16 раз", size=15),
+    kw8, cw8, top, th = 3.43, 4.05, 1.6, 3.1
+    t.rect(X0, top, kw8, th)
+    t.text(X0 + 0.3, top + 0.25, kw8 - 0.6, th - 0.4, [
+        P(R("DOCKER-ОБРАЗ", MUTED, bold=True), size=13, after=6),
+        P(R("16 МБ", GO, bold=True), size=44, after=0),
+        P(R("против", MUTED), size=14, after=0),
+        P(R("255 МБ", PY, bold=True), size=44, after=8),
+        P("distroless static против python-slim + venv: в 16 раз", size=13, color=MUTED),
     ])
-    ex, ew = 5.95, 6.78
-    t.card(ex, 1.6, ew, 2.45, "Общее у обоих", [
+    ex = X0 + kw8 + 0.3
+    t.card(ex, top, cw8, th, "Общее у обоих", [
         P("Multi-stage, non-root, healthcheck", bullet=True, after=4),
         P("Отдельные сервисы migrate и seed в compose", bullet=True, after=4),
         P("/healthz, /readyz, /metrics, JSON-логи", bullet=True, after=4),
-        P("Ошибки в формате RFC 7807, X-User-Id через middleware", bullet=True)])
-    t.card(ex, 4.3, ew, 2.25, "Различия", [
+        P("Ошибки RFC 7807, X-User-Id через middleware", bullet=True)], size=14)
+    t.card(ex + cw8 + 0.3, top, cw8, th, "Различия", [
         P(R("Go: ", GO, bold=True), "vendor/ для офлайн-сборки, линтер в Docker", bullet=True, after=4),
         P(R("Python: ", PY, bold=True), "OpenAPI из кода, тест ловит расхождения", bullet=True, after=4),
-        P(R("Python: ", PY, bold=True), "make test/lint требуют uv на хосте", bullet=True)])
+        P(R("Python: ", PY, bold=True), "make test/lint требуют uv на хосте", bullet=True)], size=14)
+    by, bh, hw8 = 4.95, 1.85, (CW - 0.8) / 2
+    t.rect(X0, by, CW, bh)
+    t.text(X0 + 0.25, by + 0.2, CW - 0.5, 0.4, [P(R("DevEx vs Security", ACC, bold=True))], size=18)
+    t.text(X0 + 0.25, by + 0.65, hw8, bh - 0.8, [
+        P(R("Python: ", PY, bold=True), "интерпретатор в контейнере — hotfix, дамп данных и скрипты без пересборки. "
+                                         "Но это лишняя поверхность атаки.")], size=14)
+    t.text(X0 + 0.55 + hw8, by + 0.65, hw8, bh - 0.8, [
+        P(R("Go (distroless): ", GO, bold=True), "нет даже shell — максимум безопасности и минимум размера. "
+                                                  "Но любое вмешательство — пересборка и перевыкат образа.")], size=14)
     s.append(t)
 
     # 9. Мини-задачи
@@ -365,13 +383,16 @@ def build_slides():
     t = Slide("Почему Python удобнее для MVP", "На этапе MVP скорость изменений и простота отладки важнее размера образа и задержек.",
               notes="Интерпретатор в контейнере: docker compose exec app python -c \"…\", разовая миграция данных, починка записи, "
                     "выгрузка CSV. Go-образ (distroless) не содержит даже shell: healthcheck пришлось встроить в бинарник. "
-                    "Octoverse 2025: на Python почти половина новых AI-репозиториев (582 тыс.), +850 тыс. контрибьюторов за год.")
+                    "Octoverse 2025: на Python почти половина новых AI-репозиториев (582 тыс.), +850 тыс. контрибьюторов за год. "
+                    "Python — lingua franca AI: интеграция векторных БД, RAG-пайплайнов и LLM-SDK нативна. В Go это часто "
+                    "требует glue-code или выноса логики в отдельный микросервис на Python.")
     cw3, ch3 = (CW - 0.6) / 3, 2.0
     mvp = [("Читаемый и короткий код", "Нет if err != nil и ручного маппинга. Код на 27% короче, его легче читать на ревью."),
            ("Интерпретатор в контейнере", "Любой скрипт или REPL без пересборки образа. В distroless-образе Go нет даже shell."),
-           ("Быстрый цикл правок", "Нет компиляции: правка → uvicorn ‑‑reload → результат за секунды."),
+           ("Быстрый цикл правок", "Нет компиляции: правка → результат за секунды. Сервер перезапускает uvicorn --reload."),
            ("OpenAPI и валидация из коробки", "FastAPI и Pydantic генерируют Swagger из кода. Go-агент писал YAML вручную."),
-           ("Экосистема для данных и AI", "pandas, numpy, SDK всех LLM, Jupyter. Аналитика и LLM-функции — без второго языка."),
+           ("Python — lingua franca AI", "LLM-SDK, векторные БД и RAG — нативно. В Go часто нужен glue-code "
+                                         "или отдельный сервис на Python."),
            ("Проще найти людей и помощь", "Python в двойке самых популярных языков GitHub, и у моделей на нём больше данных.")]
     for i, (h, body) in enumerate(mvp):
         t.card(X0 + (i % 3) * (cw3 + 0.3), 1.95 + (i // 3) * (ch3 + 0.2), cw3, ch3, h, [body], size=14, title_color=PY)
@@ -388,10 +409,12 @@ def build_slides():
              ("У Go — плюсы эксплуатации", "Образ 16 МБ против 255 МБ, быстрее COPY, ниже медианная задержка."),
              ("Python сильнее в тестах и типах", "Покрытие 97%, mypy --strict, OpenAPI из кода с тестом на расхождения."),
              ("Ревью обязательно", "Оба отчитались «всё зелёное», ревьюеры за 5–6 минут нашли баги с 500/400."),
-             ("10 млрд — с оговорками", "Поиск одним PostgreSQL не масштабируется. Оба вынесли это в документацию.")]
+             ("10 млрд — с оговорками", "Поиск одним PostgreSQL не масштабируется. Оба вынесли это в документацию."),
+             ("Critical mass — за Go", "На MVP выигрывает Python. С ростом команды и инвариантов типы и компилятор "
+                                       "Go окупаются: меньше runtime-ошибок, быстрее рефакторинг.")]
     colw = (CW - 0.4) / 2
     for i, (h, body) in enumerate(concl):
-        col, row = (0, i) if i < 4 else (1, i - 4)
+        col, row = divmod(i, 4)
         x, y = X0 + col * (colw + 0.4), 1.55 + row * 1.32
         t.rect(x, y + 0.05, 0.55, 0.55, fill=ACC, shape="oval")
         t.text(x, y + 0.05, 0.55, 0.55, [P(R(str(i + 1), BG, bold=True))], size=18, align="c", valign="m")
