@@ -1,0 +1,114 @@
+name: lib_rust
+
+x-app-env: &app-env
+  DATABASE_URL: postgres://library:library@postgres:5432/library
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: lib_rust_postgres
+    environment:
+      POSTGRES_USER: library
+      POSTGRES_PASSWORD: library
+      POSTGRES_DB: library
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    volumes:
+      - lib_rust_pgdata:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    ports:
+      - "35432:5432"
+    shm_size: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U library -d library"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build: .
+    image: lib_rust-app:latest
+    container_name: lib_rust_migrate
+    command: ["migrate"]
+    environment: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    image: lib_rust-app:latest
+    container_name: lib_rust_app
+    pull_policy: never
+    command: ["serve"]
+    environment:
+      <<: *app-env
+      HTTP_ADDR: 0.0.0.0:8080
+      DB_MAX_CONNECTIONS: ${DB_MAX_CONNECTIONS:-32}
+      DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-5000}
+      REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-15000}
+      NODE_ID: ${NODE_ID:-1}
+    ports:
+      - "38003:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  seed:
+    image: lib_rust-app:latest
+    container_name: lib_rust_seed
+    pull_policy: never
+    command: ["seed"]
+    profiles: ["seed"]
+    environment:
+      <<: *app-env
+      SEED_BOOKS: ${SEED_BOOKS:-1000000}
+      SEED_AUTHORS: ${SEED_AUTHORS:-200000}
+      SEED_USERS: ${SEED_USERS:-1000}
+      SEED_RANDOM: ${SEED_RANDOM:-42}
+      SEED_WORKERS: ${SEED_WORKERS:-8}
+      SEED_BATCH_SIZE: ${SEED_BATCH_SIZE:-25000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  explain:
+    image: lib_rust-app:latest
+    container_name: lib_rust_explain
+    pull_policy: never
+    command: ["explain", "/out/QUERY_PLANS.md"]
+    profiles: ["tools"]
+    user: "${UID:-1000}:${GID:-1000}"
+    environment: *app-env
+    volumes:
+      - ./docs:/out
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Test runner that needs only Docker: compiles and runs `cargo test` in a Rust image
+  # against the compose PostgreSQL (each run creates its own throw-away database).
+  test:
+    image: rust:1.100-slim-bookworm
+    container_name: lib_rust_test
+    profiles: ["test"]
+    working_dir: /src
+    command: ["cargo", "test", "--locked"]
+    environment:
+      TEST_DATABASE_URL: postgres://library:library@postgres:5432/postgres
+      CARGO_TARGET_DIR: /target
+    volumes:
+      - ./:/src:ro
+      - lib_rust_cargo:/usr/local/cargo/registry
+      - lib_rust_target:/target
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  lib_rust_pgdata:
+  lib_rust_cargo:
+  lib_rust_target:

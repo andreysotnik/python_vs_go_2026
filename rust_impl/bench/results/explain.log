@@ -1,0 +1,34 @@
+UID=$(id -u) GID=$(id -g) docker compose --profile tools run --rm explain
+/bin/sh: UID: readonly variable
+ Container lib_rust_postgres  Running
+[explain] books: default sort (-created_at), first page                2.12 ms  OK
+[explain] books: sort=title, second page (keyset)                      1.36 ms  OK
+[explain] books: sort=-publication_year + year range                  19.90 ms  OK
+[explain] books: language filter + sort=title                          3.07 ms  OK
+[explain] books: genre filter                                          0.70 ms  OK
+[explain] books: rare genre + language (combined GIN)                  7.33 ms  OK
+[explain] books: publisher filter                                      3.53 ms  OK
+[explain] books: created_by filter                                     5.28 ms  OK
+[explain] books: created_from/created_to                               1.43 ms  OK
+[explain] books: title substring (trigram)                            80.27 ms  OK
+[explain] books: q full-text                                           4.85 ms  OK
+[explain] books: author name filter                                   50.42 ms  OK
+[explain] books: author_id filter                                      1.18 ms  OK
+[explain] books: isbn filter                                           0.17 ms  OK
+[explain] authors: default sort (-created_at)                          1.00 ms  OK
+[explain] authors: sort=full_name, second page                         0.66 ms  OK
+[explain] authors: country filter                                      0.38 ms  OK
+[explain] authors: name substring (trigram)                            6.07 ms  OK
+[explain] authors: born range, sort=birth_date                         1.00 ms  OK
+[explain] authors: q full-text                                         2.09 ms  OK
+[explain] search: type=all, full-text mode (common word)              40.32 ms  OK
+[explain] search: type=all, full-text mode (rare name)                 7.03 ms  OK
+[explain] search: type=books, fuzzy mode (typo)                       13.58 ms  OK
+[explain] search: type=authors, full-text mode                         5.04 ms  OK
+[explain] search: type=authors, fuzzy mode (typo)                     14.23 ms  OK
+[explain] book card: by id                                             0.01 ms  OK
+[explain] book card: authors of books (page enrichment)                0.15 ms  OK
+[explain] author books                                                 1.00 ms  OK
+[explain] history                                                      1.70 ms  OK
+[explain] report written to /out/QUERY_PLANS.md
+[explain] PASS: 29 queries, no Seq Scan on big tables

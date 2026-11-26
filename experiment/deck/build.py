@@ -24,10 +24,10 @@ FONT = "Arial"
 
 BG, CARD, CARD2, LINE = "1B1D23", "262A33", "313642", "3A3F4B"
 TEXT, MUTED = "F2F3F5", "A3A8B4"
-GO, PY, OK, BAD, ACC = "3CC4E8", "F4B740", "4CC38A", "F0625F", "A78BFA"
+GO, PY, RS, OK, BAD, ACC = "3CC4E8", "F4B740", "FF8A3D", "4CC38A", "F0625F", "A78BFA"
 
 X0, CW = 0.6, 12.13          # левое поле и ширина контента
-TOTAL = 16
+TOTAL = 17
 
 
 # ---------- описание слайдов ----------
@@ -93,146 +93,163 @@ def build_slides():
     # 1. Титул
     t = Slide()
     t.text(0.8, 1.6, 6.3, 4.3, [
-        P(R("Go", GO, bold=True), R(" vs ", bold=True), R("Python", PY, bold=True), R(":", bold=True), size=48, after=10),
-        P(R("два AI-агента пишут один backend", bold=True), size=40),
+        P(R("Go", GO, bold=True), R(" vs ", bold=True), R("Python", PY, bold=True), size=48, after=0),
+        P(R("vs ", bold=True), R("Rust", RS, bold=True), R(":", bold=True), size=48, after=10),
+        P(R("три AI-агента пишут один backend", bold=True), size=36),
     ], valign="m")
     t.image(7.55, 1.05, 5.2, 5.2, ROOT / "assets/author.jpg", "Автор доклада")
     s.append(t)
 
     # 2. Методика
     t = Slide("Методика", notes="Метрики сняты из транскриптов агентов, а не с их слов. "
-              "Старт обоих агентов одновременно, в 12:57 UTC; отдельные каталоги, порты и compose-проекты.")
+              "Go и Python стартовали одновременно 17 ноября в 12:57 UTC. Rust-агент запущен отдельно 26 ноября "
+              "в 17:04 UTC с тем же промтом и той же моделью; отдельные каталоги, порты и compose-проекты.")
     t.rect(X0, 1.6, 5.8, 4.9)
     t.text(X0 + 0.4, 1.95, 5.0, 4.3, [
         P(R("МОДЕЛЬ", MUTED, bold=True), size=13, after=4),
         P(R("Claude Opus 5.5", bold=True), size=30, after=28),
         P(R("ПРОМТ", MUTED, bold=True), size=13, after=4),
         P(R("Один и тот же, отличается только язык: ", bold=True), R("Go", GO, bold=True),
-          R(" или ", bold=True), R("Python", PY, bold=True), size=24),
+          R(", ", bold=True), R("Python", PY, bold=True), R(" или ", bold=True), R("Rust", RS, bold=True), size=24),
     ])
     sx, sw = 6.75, 5.98
-    t.card(sx, 1.6, sw, 2.3, "Go", ["chi · pgx · squirrel · goose", "образ distroless"], size=17, title_color=GO)
-    t.card(sx, 4.2, sw, 2.3, "Python", ["FastAPI · asyncpg · Pydantic v2 · SQLAlchemy/Alembic · uv",
-                                        "образ python-slim"], size=17, title_color=PY)
-    t.text(X0, 6.6, CW, 0.3, ["Стеки агенты выбрали сами."], size=12, color=MUTED)
+    t.card(sx, 1.6, sw, 1.5, "Go", ["chi · pgx · squirrel · goose · distroless"], size=16, title_color=GO)
+    t.card(sx, 3.3, sw, 1.5, "Python", ["FastAPI · asyncpg · Pydantic v2 · Alembic · python-slim"],
+           size=16, title_color=PY)
+    t.card(sx, 5.0, sw, 1.5, "Rust", ["axum · sqlx · tokio · serde · distroless"], size=16, title_color=RS)
+    t.text(X0, 6.6, CW, 0.3, ["Стеки агенты выбрали сами. Rust-агент запущен отдельно, через 9 дней, "
+                              "и работал один на машине."], size=12, color=MUTED)
     s.append(t)
 
     # 3. Хронология
-    t = Slide("Хронология", "Go-агент закончил на 10,6 минуты раньше. Каждый ревьюер работал около 5–6 минут.")
+    t = Slide("Хронология", "Rust закончил быстрее всех, Go — на 10,6 минуты раньше Python. Ревью — 5–7 минут на каждого.")
     tx, tw, span = 2.3, 10.43, 93.0
-    for lbl, m in [("12:57", 0), ("13:30", 33), ("14:00", 63), ("14:30", 93)]:
+    for lbl, m in [("0 мин", 0), ("30", 30), ("60", 60), ("90", 90)]:
         xx = tx + tw * m / span
-        t.rect(xx - 0.005, 2.05, 0.01, 2.35, fill=LINE, radius=0)
-        t.text(xx - 0.5, 4.45, 1.0, 0.3, [lbl], size=12, color=MUTED, align="c")
+        t.rect(xx - 0.005, 1.95, 0.01, 2.75, fill=LINE, radius=0)
+        t.text(xx - 0.5, 4.72, 1.0, 0.3, [lbl], size=12, color=MUTED, align="c")
     rows = [("Go", GO, 0, 73.2, "разработка · 73,2 мин", BG), ("Python", PY, 0, 83.8, "разработка · 83,8 мин", BG),
-            ("Ревью", ACC, 84, 90, "", BG)]
+            ("Rust", RS, 0, 63.9, "разработка · 63,9 мин", BG)]
     for i, (name, col, a, b, lbl, fg) in enumerate(rows):
-        yy = 2.15 + i * 0.75
+        yy = 2.05 + i * 0.85
         t.text(X0, yy, 1.6, 0.5, [P(R(name, col, bold=True))], size=18, valign="m")
         t.rect(tx, yy, tw, 0.5, fill=CARD, radius=0.08)
         t.rect(tx + tw * a / span, yy, tw * (b - a) / span, 0.5, fill=col, radius=0.08)
         if lbl:
             t.text(tx + 0.2, yy, 4, 0.5, [P(R(lbl, fg, bold=True))], size=15, valign="m")
     cw = (CW - 3 * 0.3) / 4
-    for i, (tm, col, txt) in enumerate([("12:57", TEXT, "старт обоих агентов"), ("14:10", GO, "Go сдал работу"),
-                                        ("14:21", PY, "Python сдал работу, запуск ревью"),
-                                        ("14:27", ACC, "обе оценки готовы")]):
-        t.card(X0 + i * (cw + 0.3), 5.05, cw, 1.45, None,
-               [P(R(tm, col, bold=True), size=26, after=4), P(txt, size=15)])
+    for i, (tm, col, txt) in enumerate([("17.11 12:57", TEXT, "старт Go и Python параллельно"),
+                                        ("14:10 · 14:21", GO, "сдали Go и Python, затем ревью"),
+                                        ("26.11 17:04", RS, "старт Rust, один на машине"),
+                                        ("18:08 · 18:15", ACC, "Rust сдал работу, ревью готово")]):
+        t.card(X0 + i * (cw + 0.3), 5.15, cw, 1.45, None,
+               [P(R(tm, col, bold=True), size=22, after=4), P(txt, size=14)])
     s.append(t)
 
     # 4. Скорость и стоимость
-    t = Slide("Скорость и стоимость", "Python работал дольше, но потратил на 30% меньше токенов: меньше вызовов, короче контекст.",
+    t = Slide("Скорость и стоимость", "Python работал дольше всех, но потратил на 30% меньше токенов. Rust — быстрее всех, по цене как Go.",
               notes="Больше 95% «всех токенов» — повторное чтение контекста из кеша на каждом шаге. Поэтому стоимость "
                     "определяют число шагов и длина контекста, а не объём написанного кода. Ревью: Go — 4,4 млн токенов "
-                    "и 40 вызовов, Python — 3,6 млн токенов и 31 вызов. "
+                    "и 40 вызовов, Python — 3,6 млн токенов и 31 вызов, Rust — 5,0 млн токенов и 41 вызов. "
+                    "Rust повторил профиль Go: 119 шагов по ≈32 с и длинный контекст, поэтому по токенам как Go. "
                     "Почему Go быстрее, но дороже: Go-агент сделал больше шагов (135 против 116) с более длинным "
                     "контекстом — отсюда больше токенов. Генерация у Go больше лишь на 26%, так что многословность кода "
                     "объясняет малую часть. Зато шаги были короче (≈32 с против ≈43 с): вероятно, компилятор и быстрые "
                     "go build / go test давали мгновенную обратную связь, поэтому по часам Go закончил раньше.")
     g = lambda v, w=False: C(R(v, GO, bold=w), align="r")
     p = lambda v, w=False: C(R(v, PY, bold=w), align="r")
-    t.table(X0, 1.95, [3.9, 2.0, 2.0], [
-        [C(R("Метрика", bold=True)), C(R("Go", GO, bold=True), align="r"), C(R("Python", PY, bold=True), align="r")],
-        [C("Время разработки"), g("73,2 мин", True), p("83,8 мин")],
-        [C("Вызовы API модели"), g("135"), p("116", True)],
-        [C("Сгенерировано токенов"), g("262 025"), p("207 734", True)],
-        [C("Записано в кеш"), g("684 371"), p("508 411", True)],
-        [C("Прочитано из кеша"), g("29,9 млн"), p("20,9 млн", True)],
-        [C(R("Всего токенов", bold=True)), g("30,9 млн", True), p("21,6 млн", True)],
-        [C("Контекст на финише"), g("351 тыс."), p("289 тыс.")],
-        [C(R("Стоимость по ценам API*", bold=True)), g("≈ $14,7", True), p("≈ $10,9", True)],
+    r = lambda v, w=False: C(R(v, RS, bold=w), align="r")
+    t.table(X0, 1.95, [3.25, 1.75, 1.75, 1.75], [
+        [C(R("Метрика", bold=True)), C(R("Go", GO, bold=True), align="r"), C(R("Python", PY, bold=True), align="r"),
+         C(R("Rust", RS, bold=True), align="r")],
+        [C("Время разработки"), g("73,2 мин"), p("83,8 мин"), r("63,9 мин", True)],
+        [C("Вызовы API модели"), g("135"), p("116", True), r("119")],
+        [C("Сгенерировано токенов"), g("262 025"), p("207 734", True), r("306 666")],
+        [C("Записано в кеш"), g("684 371"), p("508 411"), r("388 819", True)],
+        [C("Прочитано из кеша"), g("29,9 млн"), p("20,9 млн", True), r("30,6 млн")],
+        [C(R("Всего токенов", bold=True)), g("30,9 млн", True), p("21,6 млн", True), r("31,3 млн", True)],
+        [C("Контекст на финише"), g("351 тыс."), p("289 тыс."), r("394 тыс.")],
+        [C(R("Стоимость по ценам API*", bold=True)), g("≈ $14,7", True), p("≈ $10,9", True), r("≈ $14,2", True)],
     ], row_h=0.42, size=15)
-    rx, rw = 8.85, 3.88
+    rx, rw = 9.4, 3.33
     t.card(rx, 1.95, rw, 1.75, None, [P(R("−30%", PY, bold=True), size=44, after=4),
-                                      P("токенов у Python: 21,6 млн против 30,9 млн", size=15)])
-    t.card(rx, 3.9, rw, 1.75, None, [P(R("$10,9", PY, bold=True), R("  vs  ", MUTED), R("$14,7", GO, bold=True), size=34, after=6),
-                                     P(">95% токенов — дешёвое чтение из кеша", size=15)])
-    t.text(X0, 5.85, CW, 0.55, [P(R("Почему Go быстрее, но дороже: ", GO, bold=True),
-                                  "Go-агент сделал больше шагов (135 против 116) с более длинным контекстом — отсюда больше "
-                                  "токенов. Но шаги были короче (≈32 с против ≈43 с): компилятор давал мгновенную обратную "
-                                  "связь, и по часам Go закончил раньше.")], size=13)
+                                      P("токенов у Python: 21,6 млн против 30,9–31,3 млн", size=14)])
+    t.card(rx, 3.9, rw, 1.75, None, [P(R("≈32 с", GO, bold=True), R(" vs ", MUTED), R("≈43 с", PY, bold=True), size=28, after=6),
+                                     P("средний шаг Go и Rust против Python", size=14)])
+    t.text(X0, 5.85, CW, 0.55, [P(R("Почему Go и Rust быстрее, но дороже: ", GO, bold=True),
+                                  "больше шагов (135 и 119 против 116) с более длинным контекстом — отсюда больше токенов. "
+                                  "Но шаги короче (≈32 с против ≈43 с): компилятор даёт мгновенную обратную связь, "
+                                  "и по часам они заканчивают раньше.")], size=13)
     t.text(X0, 6.45, CW, 0.45, ["* Прайс Claude Opus 5.5 на ноябрь 2026, за 1 млн токенов: вход $4, генерация $20, "
                                 "запись в кеш $5, чтение из кеша $0,20. В среднем ≈ $0,5 за 1 млн токенов."],
            size=12, color=MUTED)
     s.append(t)
 
     # 5. Объём кода
-    t = Slide("Объём кода", "Go длиннее на 27% в коде и на 47% в тестах: явная обработка ошибок и маппинг строк.")
+    t = Slide("Объём кода", "Go и Rust длиннее Python на 27–31% в коде: явная обработка ошибок и маппинг строк.")
     t.bars(X0, 1.9, 7.4, 4.55, ["Рабочий код", "Тесты", "SQL-миграции"],
-           [("Go", GO, [4350, 1821, 176]), ("Python", PY, [3424, 1241, 201])])
-    t.text(X0, 6.5, 7.4, 0.35, ["Непустые строки без комментариев; vendor/, .venv и lock-файлы исключены."],
+           [("Go", GO, [4350, 1821, 176]), ("Python", PY, [3424, 1241, 201]), ("Rust", RS, [4479, 1717, 152])])
+    t.text(X0, 6.5, 7.4, 0.5, ["Непустые строки без комментариев; vendor/, .venv, target/ и lock-файлы исключены. "
+                               "У Rust 855 строк встроенных #[cfg(test)] отнесены к тестам."],
            size=12, color=MUTED)
     fx, fw = 8.35, 4.38
-    t.card(fx, 1.9, fw, 1.4, "Файлов исходников", [P(R("46 .go", GO, bold=True), R("  ·  ", MUTED), R("58 .py", PY, bold=True))])
-    t.card(fx, 3.5, fw, 1.6, "openapi.yaml", [P(R("Go: ", GO, bold=True), "651 строка вручную"),
-                                             P(R("Python: ", PY, bold=True), "2 996, из кода")])
-    t.card(fx, 5.3, fw, 1.4, "Документация", ["~11 тыс. строк Markdown у каждого"])
+    t.card(fx, 1.9, fw, 1.4, "Файлов исходников", [P(R("46 .go", GO, bold=True), R("  ·  ", MUTED), R("58 .py", PY, bold=True),
+                                                    R("  ·  ", MUTED), R("21 .rs", RS, bold=True))])
+    t.card(fx, 3.5, fw, 1.75, "openapi.yaml", [P(R("Go: ", GO, bold=True), "651 строка вручную"),
+                                              P(R("Python: ", PY, bold=True), "2 996, из кода"),
+                                              P(R("Rust: ", RS, bold=True), "877 строк вручную")])
+    t.card(fx, 5.45, fw, 1.25, "Документация", ["Markdown: ~11 тыс. строк у Go и Python, ~9 тыс. у Rust"], size=14)
     s.append(t)
 
     # 6. Тесты и проверки
-    t = Slide("Тесты и проверки", "Оба агента довели всё до зелёного. Ревьюеры перезапустили проверки сами и получили те же результаты.")
-    t.table(X0, 1.95, [3.2, 4.46, 4.47], [
-        [C(R("Проверка", bold=True)), C(R("Go", GO, bold=True)), C(R("Python", PY, bold=True))],
-        [C("Тесты"), C("50 функций + 6 подтестов, 10 пакетов ok"), C("139 passed (70 unit + 69 integration), 8,6 с")],
-        [C("Покрытие бизнес-логики"), C(R("92,5%", GO, bold=True)), C(R("97,0%", PY, bold=True))],
-        [C("Линтеры"), C("golangci-lint · go vet: 0 замечаний"), C("ruff + mypy --strict: 0 замечаний")],
-        [C("EXPLAIN на 1 млн книг"), C("40/40 без Seq Scan"), C("40/40 без Seq Scan")],
-        [C("Повтор у ревьюера"), C(R("✓ прошло", OK, bold=True)), C(R("✓ прошло", OK, bold=True))],
-        [C("Итераций до зелёного"), C("seed ×3, explain ×5, integration ×5"), C("~7 по тестам + 4 по производительности")],
-    ], row_h=0.5, size=15)
-    t.card(X0, 5.65, CW, 1.2, None, [P(R("Общая ловушка. ", ACC, bold=True),
-                                       "Для партиционированной таблицы pg_get_indexdef возвращает ON ONLY, и индексы, "
-                                       "пересобранные после seed, оставались пустыми. Оба агента нашли и исправили это сами.")],
-           size=15)
+    t = Slide("Тесты и проверки", "Все три агента довели всё до зелёного. Ревьюеры перезапустили проверки сами и получили те же результаты.")
+    t.table(X0, 1.95, [2.65, 3.16, 3.16, 3.16], [
+        [C(R("Проверка", bold=True)), C(R("Go", GO, bold=True)), C(R("Python", PY, bold=True)), C(R("Rust", RS, bold=True))],
+        [C("Тесты"), C("50 функций + 6 подтестов"), C("139 passed: 70 unit + 69 integr."), C("72 passed: 57 unit + 14 integr. + 1 e2e")],
+        [C("Покрытие"), C(R("92,5%", GO, bold=True)), C(R("97,0%", PY, bold=True)), C(R("93,9%", RS, bold=True))],
+        [C("Линтеры"), C("golangci-lint, go vet: 0"), C("ruff, mypy --strict: 0"), C("clippy -D warnings, rustfmt: 0")],
+        [C("EXPLAIN, 1 млн книг"), C("40/40 без Seq Scan"), C("40/40 без Seq Scan"), C("29/29 + generic-планы")],
+        [C("Повтор у ревьюера"), C(R("✓ прошло", OK, bold=True)), C(R("✓ прошло", OK, bold=True)), C(R("✓ прошло", OK, bold=True))],
+        [C("Итераций"), C("seed ×3, explain ×5, integr. ×5"), C("~7 тесты + 4 производит."), C("integr. ×5, Docker ×2, план ×4")],
+    ], heights=[0.45, 0.7, 0.45, 0.45, 0.45, 0.45, 0.7], size=14)
+    hw6 = (CW - 0.3) / 2
+    t.card(X0, 5.85, hw6, 1.05, None, [P(R("Go и Python: ", ACC, bold=True),
+                                         "pg_get_indexdef возвращает ON ONLY, индексы после seed оставались пустыми. "
+                                         "Оба нашли и исправили сами.")], size=13, pad=0.2)
+    t.card(X0 + hw6 + 0.3, 5.85, hw6, 1.05, None, [P(R("Rust: ", RS, bold=True),
+                                                     "под нагрузкой generic-план prepared statement делал Seq Scan, "
+                                                     "обычный EXPLAIN этого не видит. Добавил проверку GENERIC_PLAN.")],
+           size=13, pad=0.2)
     s.append(t)
 
     # 7. Производительность
-    t = Slide("Производительность", "Цифры показательные, но напрямую не сравнимы: разные профили нагрузки, общий перегруженный хост.")
-    lw = 5.6
+    t = Slide("Производительность", "Цифры показательные, но напрямую не сравнимы: разные профили нагрузки и разная загрузка хоста.")
+    lw = 5.0
     t.text(X0, 1.9, lw, 0.4, [P(R("Seed: ~6 млн строк", bold=True))], size=18)
-    t.table(X0, 2.4, [2.4, 1.6, 1.6], [
-        [C(""), C(R("Go", GO, bold=True), align="r"), C(R("Python", PY, bold=True), align="r")],
-        [C("COPY"), C(R("9,0 с", GO, bold=True), align="r"), C(R("15,5 с", PY), align="r")],
-        [C("Индексы + FK"), C(R("33 с", GO), align="r"), C(R("24,1 с", PY, bold=True), align="r")],
-        [C("VACUUM ANALYZE"), C(R("25 с", GO), align="r"), C(R("12,1 с", PY, bold=True), align="r")],
-        [C(R("Итого", bold=True)), C(R("~68 с", GO), align="r"), C(R("52,0 с*", PY, bold=True), align="r")],
+    t.table(X0, 2.4, [1.95, 1.0, 1.05, 1.0], [
+        [C(""), C(R("Go", GO, bold=True), align="r"), C(R("Python", PY, bold=True), align="r"), C(R("Rust", RS, bold=True), align="r")],
+        [C("COPY"), C(R("9,0 с", GO), align="r"), C(R("15,5 с", PY), align="r"), C(R("8,0 с", RS, bold=True), align="r")],
+        [C("Индексы + FK"), C(R("33 с", GO), align="r"), C(R("24,1 с", PY), align="r"), C(R("9,1 с", RS, bold=True), align="r")],
+        [C("VACUUM"), C(R("25 с", GO), align="r"), C(R("12,1 с", PY, bold=True), align="r"), C(R("15,6 с", RS), align="r")],
+        [C(R("Итого", bold=True)), C(R("~68 с", GO), align="r"), C(R("52,0 с*", PY), align="r"), C(R("33,0 с", RS, bold=True), align="r")],
     ], row_h=0.45, size=15)
-    t.text(X0, 4.85, lw, 1.0, ["* Python — PGDATA в tmpfs (RAM), Go — на Docker-томе. Сам COPY у Go в 1,8 раза быстрее."],
-           size=12, color=MUTED)
-    kx, kw = 6.65, 6.08
+    t.text(X0, 4.85, lw, 1.2, ["* Python — PGDATA в tmpfs (RAM), Go и Rust — на Docker-томе. Rust работал один на машине; "
+                               "индексы он строит параллельно по партициям."], size=12, color=MUTED)
+    kx, kw = 5.95, 6.78
     t.text(kx, 1.9, kw, 0.4, [P(R("k6, нагрузка на API", bold=True))], size=18)
-    t.table(kx, 2.4, [1.79, 1.43, 1.43, 1.43], [
-        [C(""), C(R("Go", GO, bold=True), align="r"), C(R("Go", GO, bold=True), align="r"), C(R("Python", PY, bold=True), align="r")],
-        [C("Пользователи"), C("8", align="r"), C("32", align="r"), C("64", align="r")],
-        [C("RPS"), C("321", align="r"), C("365", align="r"), C(R("560", PY, bold=True), align="r")],
-        [C("p50"), C(R("5,1 мс", GO, bold=True), align="r"), C("13,4 мс", align="r"), C("95 мс", align="r")],
-        [C("p95"), C("129 мс", align="r"), C("508 мс", align="r"), C("266 мс", align="r")],
-        [C("p99"), C("443 мс", align="r"), C("1 526 мс", align="r"), C("412 мс", align="r")],
-        [C("Ошибки"), C("0%", align="r"), C("0%", align="r"), C("0%", align="r")],
+    t.table(kx, 2.4, [1.86, 1.23, 1.23, 1.23, 1.23], [
+        [C(""), C(R("Go", GO, bold=True), align="r"), C(R("Go", GO, bold=True), align="r"),
+         C(R("Python", PY, bold=True), align="r"), C(R("Rust", RS, bold=True), align="r")],
+        [C("Пользователи"), C("8", align="r"), C("32", align="r"), C("64", align="r"), C("32", align="r")],
+        [C("RPS"), C("321", align="r"), C("365", align="r"), C("560", align="r"), C(R("658", RS, bold=True), align="r")],
+        [C("p50"), C(R("5,1 мс", GO, bold=True), align="r"), C("13,4 мс", align="r"), C("95 мс", align="r"), C("36 мс", align="r")],
+        [C("p95"), C("129 мс", align="r"), C("508 мс", align="r"), C("266 мс", align="r"), C(R("160 мс", RS, bold=True), align="r")],
+        [C("p99"), C("443 мс", align="r"), C("1 526 мс", align="r"), C("412 мс", align="r"), C(R("260 мс", RS, bold=True), align="r")],
+        [C("Ошибки"), C("0%", align="r"), C("0%", align="r"), C("0%", align="r"), C("0%", align="r")],
     ], row_h=0.42, size=15)
     t.text(kx, 5.5, kw, 1.0, ["Хост Go был перегружен (load average 20–190), Python гонял БД в RAM. "
-                              "Хвосты p95/p99 у обоих упираются в /search и CPU."], size=12, color=MUTED)
+                              "Хвосты p95/p99 у всех упираются в /search и CPU; Rust-агент поднял RPS с 215 до 658, "
+                              "переписав поиск."], size=12, color=MUTED)
     s.append(t)
 
     # 8. Эксплуатация
@@ -241,21 +258,21 @@ def build_slides():
     t.rect(X0, top, kw8, th)
     t.text(X0 + 0.3, top + 0.25, kw8 - 0.6, th - 0.4, [
         P(R("DOCKER-ОБРАЗ", MUTED, bold=True), size=13, after=6),
-        P(R("16 МБ", GO, bold=True), size=44, after=0),
-        P(R("против", MUTED), size=14, after=0),
-        P(R("255 МБ", PY, bold=True), size=44, after=8),
-        P("distroless static против python-slim + venv: в 16 раз", size=13, color=MUTED),
+        P(R("16", GO, bold=True), R(" · ", MUTED), R("40", RS, bold=True), R(" · ", MUTED),
+          R("255", PY, bold=True), size=30, after=0),
+        P(R("МБ: Go · Rust · Python", MUTED), size=14, after=10),
+        P("distroless static и distroless cc против python-slim + venv", size=13, color=MUTED),
     ])
     ex = X0 + kw8 + 0.3
-    t.card(ex, top, cw8, th, "Общее у обоих", [
+    t.card(ex, top, cw8, th, "Общее у всех", [
         P("Multi-stage, non-root, healthcheck", bullet=True, after=4),
         P("Отдельные сервисы migrate и seed в compose", bullet=True, after=4),
         P("/healthz, /readyz, /metrics, JSON-логи", bullet=True, after=4),
         P("Ошибки RFC 7807, X-User-Id через middleware", bullet=True)], size=14)
     t.card(ex + cw8 + 0.3, top, cw8, th, "Различия", [
         P(R("Go: ", GO, bold=True), "vendor/ для офлайн-сборки, линтер в Docker", bullet=True, after=4),
-        P(R("Python: ", PY, bold=True), "OpenAPI из кода, тест ловит расхождения", bullet=True, after=4),
-        P(R("Python: ", PY, bold=True), "make test/lint требуют uv на хосте", bullet=True)], size=14)
+        P(R("Python: ", PY, bold=True), "OpenAPI из кода; make test требует uv на хосте", bullet=True, after=4),
+        P(R("Rust: ", RS, bold=True), "тесты в контейнере rust:1.100, cargo на хосте не нужен", bullet=True)], size=14)
     by, bh, hw8 = 4.95, 1.85, (CW - 0.8) / 2
     t.rect(X0, by, CW, bh)
     t.text(X0 + 0.25, by + 0.2, CW - 0.5, 0.4, [P(R("DevEx vs Security", ACC, bold=True))], size=18)
@@ -263,8 +280,42 @@ def build_slides():
         P(R("Python: ", PY, bold=True), "интерпретатор в контейнере — hotfix, дамп данных и скрипты без пересборки. "
                                          "Но это лишняя поверхность атаки.")], size=14)
     t.text(X0 + 0.55 + hw8, by + 0.65, hw8, bh - 0.8, [
-        P(R("Go (distroless): ", GO, bold=True), "нет даже shell — максимум безопасности и минимум размера. "
+        P(R("Go", GO, bold=True), R(" и ", bold=True), R("Rust", RS, bold=True), R(" (distroless): ", bold=True),
+          "нет даже shell — максимум безопасности и минимум размера. "
                                                   "Но любое вмешательство — пересборка и перевыкат образа.")], size=14)
+    s.append(t)
+
+    # 9. Rust
+    t = Slide("Rust: третий участник", "Тот же промт и та же модель. Лучшая оценка ревьюера и самый быстрый агент, но не без багов.",
+              notes="Rust-агент запущен 26 ноября, через 9 дней после Go и Python, и работал один на машине — "
+                    "сравнение по времени и нагрузке в его пользу. n = 1. Подробности: rust_impl/, experiment/rust_report.md, "
+                    "experiment/review_rust.md.")
+    t.rect(X0, 1.95, 3.6, 4.75)
+    t.text(X0 + 0.35, 2.2, 2.9, 4.3, [
+        P(R("ОЦЕНКА РЕВЬЮЕРА", MUTED, bold=True), size=13, after=4),
+        P(R("8,35", RS, bold=True), size=54, after=0),
+        P(R("Go 8,0 · Python 7,8", MUTED), size=15, after=22),
+        P(R("ВРЕМЯ АГЕНТА", MUTED, bold=True), size=13, after=4),
+        P(R("63,9 мин", RS, bold=True), size=36, after=0),
+        P(R("Go 73,2 · Python 83,8", MUTED), size=15),
+    ])
+    cx9, cw9 = X0 + 3.9, CW - 3.9
+    hw9 = (cw9 - 0.3) / 2
+    t.card(cx9, 1.95, hw9, 2.3, "Что получилось", [
+        P("Тесты: 72/72, покрытие 93,9%, clippy и rustfmt без замечаний", bullet=True, after=4),
+        P("Seed 33 с, k6: 658 RPS, p99 260 мс", bullet=True, after=4),
+        P("Образ 40 МБ, distroless, non-root", bullet=True)], size=14, title_color=RS)
+    t.card(cx9 + hw9 + 0.3, 1.95, hw9, 2.3, "Ревьюер по критериям", [
+        P("ТЗ 9 · тесты 9 · код 9 · OpenAPI 9", bullet=True, after=4),
+        P("корректность 8 · эксплуатация 8", bullet=True, after=4),
+        P("масштабируемость БД 7 — как у Go", bullet=True)], size=14, title_color=RS)
+    t.card(cx9, 4.45, cw9, 2.25, "Что нашёл ревьюер", [
+        P("Ошибка 500 при пагинации авторов с датой рождения до н. э.: курсор хранит «-0427-01-01», "
+          "PostgreSQL не принимает это как date", bullet=True, after=4),
+        P("Редкое значение фильтра вместе с сортировкой проходит весь индекс: ~1 с на 1 млн книг, "
+          "на 10 млрд — таймаут", bullet=True, after=4),
+        P("64 партиции и FK в book_authors — слабо для 10 млрд и будущего шардинга", bullet=True)],
+           size=13, title_color=BAD)
     s.append(t)
 
     # 9. Мини-задачи
@@ -288,7 +339,8 @@ def build_slides():
     t.text(X0, 5.85, CW, 0.9, [
         P(R("В ячейках: "), R("Python", PY, bold=True), R(" / "), R("Go", GO, bold=True),
           ". Скрытые проверки агенты не видели: эталонный summary.json (75 значений), 11 проверок писем через "
-          "API Mailpit, 120 размеченных фраз. Стоимость — по прайсу Claude Opus 5.5.")], size=12, color=MUTED)
+          "API Mailpit, 120 размеченных фраз. Стоимость — по прайсу Claude Opus 5.5. "
+          "Мини-задачи решали только Go и Python.")], size=12, color=MUTED)
     s.append(t)
 
     # 10. Что повлияло
@@ -370,9 +422,10 @@ def build_slides():
         [C(R("Тезис из исследований", bold=True)), C(R("Что увидели мы", bold=True)), C(R("Совпало?", bold=True), align="c")],
         [C("На Python агент тратит меньше токенов"), C("Python: 21,6 млн, Go: 30,9 млн (+43%)"), yes],
         [C("На Go код многословнее"), C("Код Go на 27% длиннее, тесты — на 47%"), yes],
-        [C("На Go агенты справляются хуже"), C("Оценки ревьюеров 8,0 (Go) и 7,8 (Python), Go закончил на 10 мин раньше"), no],
-        [C("Типы ловят ошибки до запуска"), C("Python: ошибки 500 на граничном вводе. Go: логическая ошибка лимита курсора, её типы не ловят"), part],
-        [C("У Go проще эксплуатация"), C("Образ 16 МБ против 255 МБ, офлайн-сборка из vendor/"), yes],
+        [C("На Go и Rust агенты справляются хуже"), C("Оценки: Rust 8,35, Go 8,0, Python 7,8. Rust и Go закончили раньше Python"), no],
+        [C("Типы ловят ошибки до запуска"), C("Ошибки 500 на граничном вводе нашли у Python и у Rust (даты до н. э.). "
+                                               "У Go — логическая ошибка лимита курсора"), part],
+        [C("У Go проще эксплуатация"), C("Образы: Go 16 МБ, Rust 40 МБ, Python 255 МБ"), yes],
     ], heights=[0.5, 0.6, 0.6, 0.75, 0.75, 0.6], size=15)
     t.text(X0, 5.95, CW, 0.8, ["* Бенчмарки 2024–25 мерили более слабые модели на чужих репозиториях. У нас новый проект с нуля, "
                                 "одна модель и n = 1, поэтому вывод предварительный. Источники — experiment/RESEARCH.md."],
@@ -396,22 +449,23 @@ def build_slides():
            ("Проще найти людей и помощь", "Python в двойке самых популярных языков GitHub, и у моделей на нём больше данных.")]
     for i, (h, body) in enumerate(mvp):
         t.card(X0 + (i % 3) * (cw3 + 0.3), 1.95 + (i // 3) * (ch3 + 0.2), cw3, ch3, h, [body], size=14, title_color=PY)
-    t.text(X0, 6.5, CW, 0.4, [P(R("Когда переходить на Go: ", GO, bold=True),
+    t.text(X0, 6.5, CW, 0.4, [P(R("Когда переходить на Go", GO, bold=True), R(" или ", bold=True),
+                                  R("Rust", RS, bold=True), R(": ", bold=True),
                                   "MVP подтвердился и упёрся в производительность, память или размер образа.")], size=14)
     s.append(t)
 
     # 15. Выводы
-    t = Slide("Выводы", notes="Артефакты: go_impl/, python_impl/, журнал experiment/LOG.md, метрики experiment/*_metrics.json, "
+    t = Slide("Выводы", notes="Артефакты: go_impl/, python_impl/, rust_impl/, журнал experiment/LOG.md, метрики experiment/*_metrics.json, "
               "ревью experiment/review_*.md, исследования experiment/RESEARCH.md, мини-задачи experiment/MINI_RESULTS.md.")
-    concl = [("Язык почти не влияет на результат", "Оценки 8,0 и 7,8, архитектура совпадает. Решают модель и ТЗ."),
-             ("Go быстрее, Python дешевле", "Go на 13% быстрее, Python на 30% дешевле по токенам. Код Go длиннее на 27–53%."),
+    concl = [("Язык почти не влияет на результат", "Оценки 8,35 · 8,0 · 7,8, архитектура совпадает. Решают модель и ТЗ."),
+             ("Компилятор быстрее, Python дешевле", "Rust и Go на 13–24% быстрее, Python на 30% дешевле по токенам."),
              ("Мелкие скрипты — за Python", "С готовыми библиотеками (Excel, графики) в 3 раза быстрее и дешевле."),
-             ("У Go — плюсы эксплуатации", "Образ 16 МБ против 255 МБ, быстрее COPY, ниже медианная задержка."),
+             ("У Go и Rust — плюсы эксплуатации", "Образы 16 и 40 МБ против 255 МБ. У Rust лучшие seed и RPS."),
              ("Python сильнее в тестах и типах", "Покрытие 97%, mypy --strict, OpenAPI из кода с тестом на расхождения."),
-             ("Ревью обязательно", "Оба отчитались «всё зелёное», ревьюеры за 5–6 минут нашли баги с 500/400."),
-             ("10 млрд — с оговорками", "Поиск одним PostgreSQL не масштабируется. Оба вынесли это в документацию."),
-             ("Critical mass — за Go", "На MVP выигрывает Python. С ростом команды и инвариантов типы и компилятор "
-                                       "Go окупаются: меньше runtime-ошибок, быстрее рефакторинг.")]
+             ("Ревью обязательно", "Все трое отчитались «всё зелёное», ревьюеры за 5–7 минут нашли баги с 500."),
+             ("10 млрд — с оговорками", "Поиск одним PostgreSQL не масштабируется. Все трое вынесли это в документацию."),
+             ("Critical mass — за Go и Rust", "На MVP выигрывает Python. С ростом команды и инвариантов типы и "
+                                              "компилятор окупаются: меньше runtime-ошибок, быстрее рефакторинг.")]
     colw = (CW - 0.4) / 2
     for i, (h, body) in enumerate(concl):
         col, row = divmod(i, 4)
@@ -431,7 +485,7 @@ def build_slides():
         P(R("Python 3.12", PY, bold=True), size=36, after=24),
         P(R("СКРИПТ", MUTED, bold=True), size=13, after=4),
         P(R("experiment/deck/build.py", bold=True), size=17, after=6),
-        P("~700 строк: описание 16 слайдов и два рендерера, в PowerPoint и в HTML", size=15, color=MUTED),
+        P("~800 строк: описание 17 слайдов и два рендерера, в PowerPoint и в HTML", size=15, color=MUTED),
     ])
     t.table(X0 + 4.3, 1.95, [2.4, 1.3, 4.13], [
         [C(R("Библиотека", bold=True)), C(R("Версия", bold=True), align="r"), C(R("Зачем", bold=True))],
@@ -491,7 +545,7 @@ def render_pptx(slides, out):
         sl.background.fill.fore_color.rgb = rgb(BG)
         items = list(sd.items)
         if n > 1:
-            items.append(dict(t="text", x=X0, y=7.0, w=6, h=0.3, paras=[P("Go vs Python · AI-агенты")], size=11,
+            items.append(dict(t="text", x=X0, y=7.0, w=6, h=0.3, paras=[P("Go vs Python vs Rust · AI-агенты")], size=11,
                               color=MUTED, align="l", valign="m"))
             items.append(dict(t="text", x=W - X0 - 2, y=7.0, w=2, h=0.3, paras=[P(f"{n} / {TOTAL}")], size=11,
                               color=MUTED, align="r", valign="m"))
@@ -661,7 +715,7 @@ def render_html(slides, out):
                     groups.append(f'<div class="grp"><div class="cat">{html.escape(cat)}</div><div class="bs">{bars}</div></div>')
                 els.append(f'<div class="ch" style="{css_pos(it)}"><div class="lg">{legend}</div>{"".join(groups)}</div>')
         if n > 1:
-            els.append(f'<div class="ft">Go vs Python · AI-агенты</div><div class="ft r">{n} / {TOTAL}</div>')
+            els.append(f'<div class="ft">Go vs Python vs Rust · AI-агенты</div><div class="ft r">{n} / {TOTAL}</div>')
         parts.append(f'<section class="slide" aria-label="Слайд {n}">{"".join(els)}</section>')
 
     doc = TEMPLATE.replace("%SLIDES%", "\n".join(parts)).replace("%TOTAL%", str(TOTAL))
@@ -675,7 +729,7 @@ TEMPLATE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Go vs Python: слайды</title>
+<title>Go vs Python vs Rust: слайды</title>
 <style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -699,7 +753,7 @@ html,body{margin:0;height:100%;background:#0F1014;color:#%TEXT%;font-family:Aria
 .ch .lg i{display:inline-block;width:12px;height:12px;margin-right:7px;vertical-align:middle}
 .ch .grp{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:12px}
 .ch .bar{display:flex;align-items:center;gap:8px;margin:5px 0}
-.ch .fill{height:34px}
+.ch .fill{height:26px}
 .ch .bar b{font-size:14pt}
 .ft{left:57.6px;top:672px;width:576px;height:29px;font-size:11pt;color:#%MUTED%;display:flex;align-items:center}
 .ft.r{left:auto;right:57.6px;width:192px;justify-content:flex-end}

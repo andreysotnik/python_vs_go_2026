@@ -1,0 +1,108 @@
+docker compose build migrate
+ Service migrate  Building
+ Service migrate  Built
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [migrate internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.16kB done
+#1 DONE 0.0s
+
+#2 [migrate internal] load metadata for gcr.io/distroless/cc-debian12:nonroot
+#2 DONE 0.0s
+
+#3 [migrate internal] load metadata for docker.io/library/rust:1.100-slim-bookworm
+#3 DONE 0.0s
+
+#4 [migrate internal] load .dockerignore
+#4 transferring context: 128B done
+#4 DONE 0.0s
+
+#5 [migrate builder 1/8] FROM docker.io/library/rust:1.100-slim-bookworm
+#5 DONE 0.0s
+
+#6 [migrate stage-1 1/2] FROM gcr.io/distroless/cc-debian12:nonroot
+#6 DONE 0.0s
+
+#7 [migrate internal] load build context
+#7 transferring context: 2.07kB done
+#7 DONE 0.0s
+
+#8 [migrate builder 5/8] COPY migrations ./migrations
+#8 CACHED
+
+#9 [migrate builder 8/8] RUN touch src/main.rs src/lib.rs && cargo build --release --locked
+#9 CACHED
+
+#10 [migrate builder 3/8] COPY Cargo.toml Cargo.lock ./
+#10 CACHED
+
+#11 [migrate builder 4/8] RUN mkdir src && echo 'fn main() {}' > src/main.rs && touch src/lib.rs     && cargo build --release --locked     && rm -rf src target/release/deps/world_library* target/release/deps/libworld_library*        target/release/world-library* target/release/.fingerprint/world_library*
+#11 CACHED
+
+#12 [migrate builder 7/8] COPY src ./src
+#12 CACHED
+
+#13 [migrate builder 2/8] WORKDIR /src
+#13 CACHED
+
+#14 [migrate builder 6/8] COPY openapi.yaml ./
+#14 CACHED
+
+#15 [migrate stage-1 2/2] COPY --from=builder /src/target/release/world-library /usr/local/bin/world-library
+#15 CACHED
+
+#16 [migrate] exporting to image
+#16 exporting layers done
+#16 writing image sha256:246ade8d9a5e23f23b5d1ab74ddbc91efeef6679d0e78c00f933c414cf509761 done
+#16 naming to docker.io/library/lib_rust-app:latest done
+#16 DONE 0.0s
+
+#17 [migrate] resolving provenance for metadata file
+#17 DONE 0.0s
+docker compose up -d postgres
+ Container lib_rust_postgres  Running
+docker compose run --rm migrate
+ Container lib_rust_postgres  Running
+{"timestamp":"2026-11-26T17:59:07.314712Z","level":"INFO","message":"relation \"_sqlx_migrations\" already exists, skipping","target":"sqlx::postgres::notice"}
+{"timestamp":"2026-11-26T17:59:07.316816Z","level":"INFO","message":"relation \"audit_log_y2026m11\" already exists, skipping","target":"sqlx::postgres::notice"}
+{"timestamp":"2026-11-26T17:59:07.316830Z","level":"INFO","message":"relation \"audit_log_y2026m12\" already exists, skipping","target":"sqlx::postgres::notice"}
+{"timestamp":"2026-11-26T17:59:07.316893Z","level":"INFO","message":"relation \"audit_log_y2027m01\" already exists, skipping","target":"sqlx::postgres::notice"}
+{"timestamp":"2026-11-26T17:59:07.317040Z","level":"INFO","message":"migrations applied","target":"world_library"}
+docker compose --profile seed run --rm seed
+ Container lib_rust_postgres  Running
+[seed] books=1000000 authors=200000 users=1000 seed=42 workers=8 batch=25000
+{"timestamp":"2026-11-26T17:59:08.133862Z","level":"INFO","message":"relation \"audit_log_y2020m01\" already exists, skipping","target":"sqlx::postgres::notice"}
+[seed] authors       200000/200000 (100.0%)      99800 rows/s
+[seed] books         400000/1000000 ( 40.0%)     199795 rows/s
+[seed] books         800000/1000000 ( 80.0%)     199803 rows/s
+[seed] books        1000000/1000000 (100.0%)     166316 rows/s
+[seed] indexes  64/746 partition indexes built
+[seed] indexes  128/746 partition indexes built
+[seed] indexes  192/746 partition indexes built
+[seed] indexes  256/746 partition indexes built
+[seed] indexes  320/746 partition indexes built
+[seed] indexes  384/746 partition indexes built
+[seed] indexes  448/746 partition indexes built
+[seed] indexes  512/746 partition indexes built
+[seed] indexes  576/746 partition indexes built
+[seed] indexes  640/746 partition indexes built
+[seed] indexes  704/746 partition indexes built
+[seed] indexes  746/746 partition indexes built
+[seed] fk       authors_created_by_fkey validated in 0.0s
+[seed] fk       authors_updated_by_fkey validated in 0.0s
+{"timestamp":"2026-11-26T17:59:19.887207Z","level":"WARN","message":"slow statement: execution time exceeded alert threshold","summary":"ALTER TABLE book_authors ADD …","db.statement":"\n\nALTER TABLE book_authors ADD CONSTRAINT book_authors_author_fk FOREIGN KEY (author_id) REFERENCES authors(id)\n","rows_affected":0,"rows_returned":0,"elapsed":"1.116768667s","elapsed_secs":1.116768667,"slow_threshold":"1s","target":"sqlx::query"}
+[seed] fk       book_authors_author_fk validated in 1.1s
+{"timestamp":"2026-11-26T17:59:25.170874Z","level":"WARN","message":"slow statement: execution time exceeded alert threshold","summary":"ALTER TABLE book_authors ADD …","db.statement":"\n\nALTER TABLE book_authors ADD CONSTRAINT book_authors_book_fk FOREIGN KEY (book_id) REFERENCES books(id)\n","rows_affected":0,"rows_returned":0,"elapsed":"5.283443961s","elapsed_secs":5.283443961,"slow_threshold":"1s","target":"sqlx::query"}
+[seed] fk       book_authors_book_fk validated in 5.3s
+[seed] fk       books_created_by_fkey validated in 0.2s
+[seed] fk       books_updated_by_fkey validated in 0.2s
+{"timestamp":"2026-11-26T17:59:26.925632Z","level":"WARN","message":"slow statement: execution time exceeded alert threshold","summary":"VACUUM (ANALYZE) authors","db.statement":"","rows_affected":0,"rows_returned":0,"elapsed":"1.418916126s","elapsed_secs":1.418916126,"slow_threshold":"1s","target":"sqlx::query"}
+{"timestamp":"2026-11-26T17:59:37.843731Z","level":"WARN","message":"slow statement: execution time exceeded alert threshold","summary":"VACUUM (ANALYZE) books","db.statement":"","rows_affected":0,"rows_returned":0,"elapsed":"10.917850547s","elapsed_secs":10.917850547,"slow_threshold":"1s","target":"sqlx::query"}
+{"timestamp":"2026-11-26T17:59:40.231131Z","level":"WARN","message":"slow statement: execution time exceeded alert threshold","summary":"VACUUM (ANALYZE) isbn_registry","db.statement":"","rows_affected":0,"rows_returned":0,"elapsed":"1.090899166s","elapsed_secs":1.090899166,"slow_threshold":"1s","target":"sqlx::query"}
+[seed] ---------------------------------------------------------------
+[seed] authors loaded in 2.0s (99795 authors/s)
+[seed] books   loaded in 6.0s (166315 books/s)
+[seed] COPY phase: 5870660 rows (all tables) in 8.0s = 732294 rows/s
+[seed] drop ddl 0.3s, index+fk rebuild 9.1s, vacuum analyze 15.6s
+[seed] TOTAL 33.0s; end-to-end 177943 rows/s
+make seed  0,20s user 0,14s system 0% cpu 34,984 total

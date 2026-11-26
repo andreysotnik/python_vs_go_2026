@@ -8,8 +8,8 @@ import sys
 from collections import Counter, defaultdict
 
 SKIP_DIRS = {".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
-             "node_modules", "vendor", ".git", "htmlcov", "bin", "dist", "build", ".idea"}
-LANG_BY_EXT = {".go": "Go", ".py": "Python", ".sql": "SQL", ".yaml": "YAML", ".yml": "YAML",
+             "node_modules", "vendor", ".git", "htmlcov", "bin", "dist", "build", ".idea", "target"}
+LANG_BY_EXT = {".go": "Go", ".py": "Python", ".rs": "Rust", ".sql": "SQL", ".yaml": "YAML", ".yml": "YAML",
                ".md": "Markdown", ".js": "JavaScript", ".toml": "TOML", ".sh": "Shell",
                ".json": "JSON", ".mod": "go.mod", ".cfg": "Config", ".ini": "Config", ".conf": "Config"}
 SPECIAL = {"Dockerfile": "Docker", "Makefile": "Make", "docker-compose.yml": "YAML"}
@@ -52,14 +52,22 @@ def is_test(rel):
     return name.endswith("_test.go") or name.startswith("test_") or "/tests/" in "/" + rel
 
 
+def rust_inline_tests(lines):
+    """Строки кода встроенных модулей #[cfg(test)]: от атрибута до конца файла (обычная конвенция Rust)."""
+    for i, l in enumerate(lines):
+        if l.strip() == "#[cfg(test)]":
+            return sum(1 for x in lines[i:] if x.strip() and not x.strip().startswith("//"))
+    return 0
+
+
 def loc(root):
     stats = defaultdict(lambda: {"files": 0, "lines": 0, "code": 0})
-    test_code = prod_code = 0
+    test_code = prod_code = inline_test = 0
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         for fn in filenames:
             lang = SPECIAL.get(fn) or LANG_BY_EXT.get(os.path.splitext(fn)[1])
-            if not lang or fn in ("PROMPT.md", "go.sum", "uv.lock", "package-lock.json"):
+            if not lang or fn in ("PROMPT.md", "go.sum", "uv.lock", "package-lock.json", "Cargo.lock"):
                 continue
             p = os.path.join(dirpath, fn)
             rel = os.path.relpath(p, root)
@@ -73,19 +81,22 @@ def loc(root):
             s["files"] += 1
             s["lines"] += len(lines)
             s["code"] += code
-            if lang in ("Go", "Python"):
+            if lang in ("Go", "Python", "Rust"):
                 if is_test(rel):
                     test_code += code
                 else:
                     prod_code += code
-    return dict(stats), prod_code, test_code
+                    if lang == "Rust":
+                        inline_test += rust_inline_tests(lines)
+    return dict(stats), prod_code, test_code, inline_test
 
 
 if __name__ == "__main__":
     tr, impl = sys.argv[1], sys.argv[2]
     t, tools, first_ts, last_ts = tokens(tr)
-    s, prod, test = loc(impl)
+    s, prod, test, inline = loc(impl)
     print(json.dumps({"tokens": t, "tool_calls": tools, "tool_calls_total": sum(tools.values()),
                       "first_ts": first_ts, "last_ts": last_ts,
-                      "loc_by_lang": s, "main_lang_prod_code": prod, "main_lang_test_code": test},
+                      "loc_by_lang": s, "main_lang_prod_code": prod, "main_lang_test_code": test,
+                      "rust_inline_test_code_in_prod": inline},
                      ensure_ascii=False, indent=1))

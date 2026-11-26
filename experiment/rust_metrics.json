@@ -1,0 +1,75 @@
+{
+ "tokens": {
+  "input_tokens": 238,
+  "output_tokens": 306666,
+  "cache_creation_input_tokens": 388819,
+  "cache_read_input_tokens": 30572964,
+  "api_calls": 119,
+  "all_tokens": 31268687
+ },
+ "tool_calls": {
+  "Bash": 92,
+  "Write": 28,
+  "Edit": 2,
+  "Read": 1,
+  "SubagentHandback": 1
+ },
+ "tool_calls_total": 124,
+ "first_ts": "2026-11-26T17:04:01.340Z",
+ "last_ts": "2026-11-26T18:07:56.372Z",
+ "loc_by_lang": {
+  "TOML": {
+   "files": 2,
+   "lines": 44,
+   "code": 39
+  },
+  "Docker": {
+   "files": 1,
+   "lines": 25,
+   "code": 20
+  },
+  "Make": {
+   "files": 1,
+   "lines": 57,
+   "code": 41
+  },
+  "Markdown": {
+   "files": 6,
+   "lines": 9076,
+   "code": 8868
+  },
+  "YAML": {
+   "files": 2,
+   "lines": 991,
+   "code": 966
+  },
+  "SQL": {
+   "files": 2,
+   "lines": 216,
+   "code": 152
+  },
+  "JavaScript": {
+   "files": 1,
+   "lines": 97,
+   "code": 85
+  },
+  "JSON": {
+   "files": 1,
+   "lines": 713,
+   "code": 713
+  },
+  "Rust": {
+   "files": 21,
+   "lines": 7173,
+   "code": 6196
+  },
+  "Config": {
+   "files": 1,
+   "lines": 54,
+   "code": 47
+  }
+ },
+ "main_lang_prod_code": 5334,
+ "main_lang_test_code": 862,
+ "rust_inline_test_code_in_prod": 855
+}

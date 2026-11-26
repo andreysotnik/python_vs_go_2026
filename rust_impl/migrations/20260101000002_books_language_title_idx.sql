@@ -1,0 +1,11 @@
+-- Per-language title browsing (GET /books?language=ja&sort=title).
+--
+-- Found by the EXPLAIN check on seeded data: language and title are strongly correlated
+-- (CJK/Arabic titles sort after Latin/Cyrillic ones), so "scan books_title_idx and filter
+-- by language" read ~870k index entries (~760 ms) to find 20 Japanese titles. With the
+-- language as the leading equality column the same page is a short range scan per partition.
+--
+-- On a live 10B-row table this would be created as ON ONLY + CREATE INDEX CONCURRENTLY per
+-- partition + ALTER INDEX ... ATTACH PARTITION (see docs/ARCHITECTURE.md); for the demo the
+-- plain form inside the migration transaction is fine.
+CREATE INDEX books_lang_title_idx ON books (language_code, title, id) WHERE deleted_at IS NULL;

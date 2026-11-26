@@ -1,0 +1,109 @@
+docker compose up -d postgres
+ Container lib_rust_postgres  Running
+docker compose --profile test run --rm test
+ Container lib_rust_postgres  Running
+   Compiling world_library v0.1.0 (/src)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.68s
+     Running unittests src/lib.rs (/target/debug/build/world_library/bec312b428e9c01b/out/world_library-bec312b428e9c01b)
+
+running 57 tests
+test config::tests::database_url_required ... ok
+test config::tests::defaults_apply ... ok
+test config::tests::seed_config ... ok
+test config::tests::invalid_values_rejected ... ok
+test cursor::tests::rejects_garbage ... ok
+test cursor::tests::roundtrip ... ok
+test cursor::tests::sort_mismatch_rejected ... ok
+test cursor::tests::padded_input_is_accepted ... ok
+test cursor::tests::typed_accessors ... ok
+test error::tests::pool_timeout_maps_to_503 ... ok
+test cursor::tests::float_roundtrip_is_exact ... ok
+test error::tests::problem_shape ... ok
+test http::tests::if_match_forms ... ok
+test ids::tests::clock_going_backwards_is_tolerated ... ok
+test error::tests::statuses ... ok
+test explain::tests::raw_placeholders ... ok
+test explain::tests::detects_seq_scans ... ok
+test ids::tests::compose_roundtrip ... ok
+test ids::tests::serde_string_ids ... ok
+test ids::tests::parse_id_rules ... ok
+test isbn::tests::check_char_x ... ok
+test isbn::tests::invalid_isbns ... ok
+test ids::tests::sequence_overflow_borrows_next_ms ... ok
+test isbn::tests::known_isbns ... ok
+test isbn::tests::normalization ... ok
+test isbn::tests::generated_isbns_are_valid ... ok
+test metrics::tests::render_contains_series ... ok
+test models::tests::patch_distinguishes_null_and_absent ... ok
+test query::tests::cursor_bound_to_sort ... ok
+test query::tests::all_book_filters_are_rendered ... ok
+test query::tests::defaults ... ok
+test query::tests::author_queries ... ok
+test models::tests::author_link_defaults ... ok
+test seed::tests::copy_escaping ... ok
+test query::tests::keyset_predicates_per_sort ... ok
+test query::tests::misc_helpers ... ok
+test query::tests::null_year_cursor_uses_sentinel ... ok
+test service::tests::refs ... ok
+test query::tests::search_parsing ... ok
+test service::tests::version_rules ... ok
+test query::tests::invalid_book_params ... ok
+test validation::tests::author_validation ... ok
+test validation::tests::book_patch_semantics ... ok
+test validation::tests::code_helpers ... ok
+test ids::tests::ids_are_monotonic_and_unique ... ok
+test validation::tests::book_errors_are_collected ... ok
+test validation::tests::diff_and_snapshot ... ok
+test validation::tests::book_normalization ... ok
+test validation::tests::author_patch_semantics ... ok
+test validation::tests::mismatched_isbns ... ok
+test validation::tests::isbn10_derives_isbn13 ... ok
+test validation::tests::too_many_things ... ok
+test validation::tests::user_validation ... ok
+test seed::tests::multilingual_content ... ok
+test seed::tests::deterministic_and_chunk_independent ... ok
+test seed::tests::ids_unique_and_isbns_valid ... ok
+test seed::tests::long_tail_distribution ... ok
+
+test result: ok. 57 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+     Running unittests src/main.rs (/target/debug/build/world_library/0da8820b9a554029/out/world_library-0da8820b9a554029)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/api.rs (/target/debug/build/world_library/7cb43770e47209fc/out/api-7cb43770e47209fc)
+
+running 14 tests
+test unknown_routes_and_methods_are_problems ... ok
+test users_crud_and_errors ... ok
+test statement_timeout_maps_to_503 ... ok
+test system_endpoints ... ok
+test author_crud_audit_and_locking ... ok
+test writes_require_valid_actor ... ok
+test link_tables_are_consistent ... ok
+test validation_and_bad_requests ... ok
+test openapi_matches_router ... ok
+test search_fulltext_fuzzy_and_paging ... ok
+test book_crud_audit_isbn_and_locking ... ok
+test author_list_filters_sorts_and_books ... ok
+test every_book_filter ... ok
+test keyset_pagination_every_sort_no_dupes_no_gaps ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.34s
+
+     Running tests/seed_explain.rs (/target/debug/build/world_library/cae647e0090564f0/out/seed_explain-cae647e0090564f0)
+
+running 1 test
+test seed_then_explain ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.34s
+
+   Doc-tests world_library
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+make test  0,09s user 0,07s system 0% cpu 19,894 total

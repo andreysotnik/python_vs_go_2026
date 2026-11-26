@@ -1,0 +1,20 @@
+# Load test (k6)
+
+VUs: 32, duration: 60s, base: http://app:8080
+
+Total requests: 39585, throughput: 658.2 req/s, failed: 0.000%
+
+| endpoint | p50, ms | p95, ms | p99, ms | max, ms |
+|---|---:|---:|---:|---:|
+| **all** | 36.05 | 159.89 | 260.28 | 666.28 |
+| books_list | 39.80 | 76.06 | 99.91 | 666.28 |
+| books_sort_title_page2 | 50.75 | 89.29 | 116.76 | 453.28 |
+| books_filter_lang_genre | 52.77 | 94.38 | 117.62 | 602.41 |
+| books_filter_year | 44.28 | 82.34 | 106.10 | 634.15 |
+| books_q | 45.84 | 85.93 | 109.94 | 650.38 |
+| book_get | 8.82 | 31.71 | 47.59 | 206.21 |
+| author_get | 2.45 | 12.94 | 22.79 | 55.73 |
+| author_books | 40.52 | 80.14 | 112.17 | 501.02 |
+| authors_list_country | 17.31 | 42.13 | 57.69 | 127.41 |
+| search_all | 158.23 | 292.76 | 366.19 | 469.64 |
+| book_patch | 18.81 | 52.21 | 80.67 | 172.55 |

@@ -3,23 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Go vs Python агенты</title>
+<title>Go vs Python vs Rust агенты</title>
 <style>
 :root{
   --bg:#f7f6f2; --surface:#ffffff; --ink:#1b1b1f; --muted:#62626b; --line:#e3e1da;
-  --go:#0a7ea4; --go-soft:#d9eef5; --py:#b5651d; --py-soft:#f6e6d6;
+  --go:#0a7ea4; --go-soft:#d9eef5; --py:#b5651d; --py-soft:#f6e6d6; --rs:#b0157a; --rs-soft:#f8dcee;
   --ok:#2f7d4f; --bad:#b3372f; --accent:#4b3fbf;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#121216; --surface:#1b1b21; --ink:#ececf1; --muted:#9d9daa; --line:#2c2c35;
-    --go:#4cc2e6; --go-soft:#143440; --py:#e9a15a; --py-soft:#3a2a1a;
+    --go:#4cc2e6; --go-soft:#143440; --py:#e9a15a; --py-soft:#3a2a1a; --rs:#f472b6; --rs-soft:#3d1830;
     --ok:#6cc58f; --bad:#ef7d74; --accent:#9b90ff;
   }
 }
 :root[data-theme="dark"]{
   --bg:#121216; --surface:#1b1b21; --ink:#ececf1; --muted:#9d9daa; --line:#2c2c35;
-  --go:#4cc2e6; --go-soft:#143440; --py:#e9a15a; --py-soft:#3a2a1a;
+  --go:#4cc2e6; --go-soft:#143440; --py:#e9a15a; --py-soft:#3a2a1a; --rs:#f472b6; --rs-soft:#3d1830;
   --ok:#6cc58f; --bad:#ef7d74; --accent:#9b90ff;
 }
 *{box-sizing:border-box}
@@ -31,9 +31,9 @@ section{min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:col
 h1{font-size:clamp(34px,6vw,68px);line-height:1.05;margin:0 0 20px;letter-spacing:-.02em}
 h2{font-size:clamp(26px,3.6vw,42px);margin:0 0 8px;letter-spacing:-.01em}
 .lead{font-size:clamp(17px,1.8vw,21px);color:var(--muted);max-width:60ch;margin:0 0 28px}
-.go{color:var(--go)} .py{color:var(--py)}
+.go{color:var(--go)} .py{color:var(--py)} .rs{color:var(--rs)}
 .tag{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600}
-.tag.go{background:var(--go-soft)} .tag.py{background:var(--py-soft)}
+.tag.go{background:var(--go-soft)} .tag.py{background:var(--py-soft)} .tag.rs{background:var(--rs-soft)}
 .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 .two{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
@@ -54,7 +54,7 @@ tr:last-child td{border-bottom:0}
 .bar .lbl{font-size:14px}
 .track{display:grid;gap:4px}
 .fill{height:12px;border-radius:6px;position:relative}
-.fill.go{background:var(--go)} .fill.py{background:var(--py)}
+.fill.go{background:var(--go)} .fill.py{background:var(--py)} .fill.rs{background:var(--rs)}
 .fill span{position:absolute;right:-42px;top:-4px;font-size:12px;color:var(--ink);width:38px}
 .legend{display:flex;gap:16px;font-size:14px;color:var(--muted);margin-bottom:12px}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
@@ -62,7 +62,7 @@ tr:last-child td{border-bottom:0}
 .tl-row{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:center;margin:10px 0}
 .tl-track{position:relative;height:28px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
 .tl-seg{position:absolute;top:3px;bottom:3px;border-radius:5px;color:#fff;font-size:12px;padding:0 8px;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
-.tl-seg.go{background:var(--go)} .tl-seg.py{background:var(--py)} .tl-seg.rv{background:var(--accent)}
+.tl-seg.go{background:var(--go)} .tl-seg.py{background:var(--py)} .tl-seg.rs{background:var(--rs)} .tl-seg.rv{background:var(--accent)}
 .axis{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-left:122px}
 .note{font-size:14px;color:var(--muted);margin-top:18px;max-width:80ch}
 .sev{font-weight:700;color:var(--bad)}
@@ -94,7 +94,7 @@ nav button{border:1px solid var(--line);background:var(--surface);color:var(--in
 .method .fact .v{font-size:24px;font-weight:600;line-height:1.3}
 .method .stacks{display:grid;gap:10px;margin-top:24px;font-size:18px}
 .method .stacks .tag{display:inline-block;min-width:76px;margin-right:12px;font-weight:700}
-.method .tag.go{color:var(--go)} .method .tag.py{color:var(--py)}
+.method .tag.go{color:var(--go)} .method .tag.py{color:var(--py)} .method .tag.rs{color:var(--rs)}
 .mini td{vertical-align:top}
 .mini td .src{font-weight:400;margin-top:4px}
 .mini .num{font-size:18px}
@@ -103,7 +103,7 @@ nav button{border:1px solid var(--line);background:var(--surface);color:var(--in
 <body>
 
 <section id="s1" class="cover">
-  <h1><span class="go">Go</span> vs <span class="py">Python</span>:<br>два AI-агента пишут один backend</h1>
+  <h1><span class="go">Go</span> vs <span class="py">Python</span> vs <span class="rs">Rust</span>:<br>три AI-агента пишут один backend</h1>
   <img class="author" src="assets/author.jpg" alt="Автор доклада">
 </section>
 
@@ -114,121 +114,125 @@ nav button{border:1px solid var(--line);background:var(--surface);color:var(--in
     <div class="card">
       <h3>Разработчики</h3>
       <div class="fact"><span class="k">Модель</span><span class="v">Claude Opus 5.5</span></div>
-      <div class="fact"><span class="k">Промт</span><span class="v">Один и тот же, отличается только язык: Go или Python</span></div>
+      <div class="fact"><span class="k">Промт</span><span class="v">Один и тот же, отличается только язык: Go, Python или Rust</span></div>
     </div>
   </div>
   <div class="stacks">
     <div><span class="tag go">Go</span>chi · pgx · squirrel · goose · образ distroless</div>
     <div><span class="tag py">Python</span>FastAPI · asyncpg · Pydantic v2 · SQLAlchemy/Alembic · uv · образ python-slim</div>
+    <div><span class="tag rs">Rust</span>axum · sqlx · tokio · serde · образ distroless cc</div>
   </div>
-  <p class="note">Стеки агенты выбрали сами.</p>
+  <p class="note">Стеки агенты выбрали сами. Go и Python работали параллельно 17 ноября, Rust-агент запущен отдельно 26 ноября с тем же промтом и работал один на машине.</p>
 </section>
 
 <section id="s3">
   <div class="n">03</div>
   <h2>Хронология</h2>
-  <p class="lead">Go-агент закончил на 10,6 минуты раньше. Каждый ревьюер работал около 5–6 минут.</p>
+  <p class="lead">Rust закончил быстрее всех, Go — на 10,6 минуты раньше Python. Каждый ревьюер работал 5–7 минут.</p>
   <div class="timeline">
-    <div class="axis"><span>12:57</span><span>13:30</span><span>14:00</span><span>14:30</span></div>
+    <div class="axis"><span>0 мин</span><span>30</span><span>60</span><span>90</span></div>
     <div class="tl-row"><div class="go"><b>Go</b></div><div class="tl-track"><div class="tl-seg go" style="left:0;width:81.3%">разработка · 73,2 мин</div></div></div>
     <div class="tl-row"><div class="py"><b>Python</b></div><div class="tl-track"><div class="tl-seg py" style="left:0;width:93.1%">разработка · 83,8 мин</div></div></div>
-    <div class="tl-row"><div style="color:var(--accent)"><b>Ревью</b></div><div class="tl-track"><div class="tl-seg rv" style="left:93.6%;width:6.4%" title="14:21–14:27"></div></div></div>
+    <div class="tl-row"><div class="rs"><b>Rust</b></div><div class="tl-track"><div class="tl-seg rs" style="left:0;width:71%">разработка · 63,9 мин</div></div></div>
   </div>
   <div class="grid" style="margin-top:24px">
-    <div class="card"><b>12:57</b> старт обоих агентов</div>
-    <div class="card"><b class="go">14:10</b> Go сдал работу</div>
-    <div class="card"><b class="py">14:21</b> Python сдал работу, запуск ревью</div>
-    <div class="card"><b style="color:var(--accent)">14:27</b> обе оценки готовы</div>
+    <div class="card"><b>17.11 12:57</b> старт Go и Python параллельно</div>
+    <div class="card"><b class="go">14:10</b> · <b class="py">14:21</b> сдали Go и Python, затем ревью до 14:27</div>
+    <div class="card"><b class="rs">26.11 17:04</b> старт Rust, один на машине</div>
+    <div class="card"><b style="color:var(--accent)">18:08 · 18:15</b> Rust сдал работу, ревью готово</div>
   </div>
 </section>
 
 <section id="s4">
   <div class="n">04</div>
   <h2>Скорость и стоимость</h2>
-  <p class="lead">Python работал дольше, но потратил на 30% меньше токенов: меньше вызовов, короче контекст.</p>
+  <p class="lead">Python работал дольше всех, но потратил на 30% меньше токенов. Rust — самый быстрый, по цене как Go.</p>
   <div class="tablewrap"><table>
-    <tr><th>Метрика</th><th class="num">Go</th><th class="num">Python</th></tr>
-    <tr><td>Время разработки</td><td class="num win go">73,2 мин</td><td class="num py">83,8 мин</td></tr>
-    <tr><td>Вызовы API модели</td><td class="num go">135</td><td class="num win py">116</td></tr>
-    <tr><td>Вызовы инструментов (почти все — Bash)</td><td class="num go">135</td><td class="num win py">116</td></tr>
-    <tr><td>Сгенерировано токенов (output)</td><td class="num go">262 025</td><td class="num win py">207 734</td></tr>
-    <tr><td>Записано в кеш контекста</td><td class="num go">684 371</td><td class="num win py">508 411</td></tr>
-    <tr><td>Прочитано из кеша</td><td class="num go">29,9 млн</td><td class="num win py">20,9 млн</td></tr>
-    <tr><td><b>Всего токенов</b></td><td class="num go"><b>30,9 млн</b></td><td class="num win py"><b>21,6 млн</b></td></tr>
-    <tr><td><b>Стоимость по ценам API</b>*</td><td class="num go"><b>≈ $14,7</b></td><td class="num win py"><b>≈ $10,9</b></td></tr>
-    <tr><td>Размер контекста на финише</td><td class="num go">351 тыс.</td><td class="num py">289 тыс.</td></tr>
+    <tr><th>Метрика</th><th class="num">Go</th><th class="num">Python</th><th class="num">Rust</th></tr>
+    <tr><td>Время разработки</td><td class="num go">73,2 мин</td><td class="num py">83,8 мин</td><td class="num win rs">63,9 мин</td></tr>
+    <tr><td>Вызовы API модели</td><td class="num go">135</td><td class="num win py">116</td><td class="num rs">119</td></tr>
+    <tr><td>Вызовы инструментов (почти все — Bash)</td><td class="num go">135</td><td class="num win py">116</td><td class="num rs">124</td></tr>
+    <tr><td>Сгенерировано токенов (output)</td><td class="num go">262 025</td><td class="num win py">207 734</td><td class="num rs">306 666</td></tr>
+    <tr><td>Записано в кеш контекста</td><td class="num go">684 371</td><td class="num py">508 411</td><td class="num win rs">388 819</td></tr>
+    <tr><td>Прочитано из кеша</td><td class="num go">29,9 млн</td><td class="num win py">20,9 млн</td><td class="num rs">30,6 млн</td></tr>
+    <tr><td><b>Всего токенов</b></td><td class="num go"><b>30,9 млн</b></td><td class="num win py"><b>21,6 млн</b></td><td class="num rs"><b>31,3 млн</b></td></tr>
+    <tr><td><b>Стоимость по ценам API</b>*</td><td class="num go"><b>≈ $14,7</b></td><td class="num win py"><b>≈ $10,9</b></td><td class="num rs"><b>≈ $14,2</b></td></tr>
+    <tr><td>Размер контекста на финише</td><td class="num go">351 тыс.</td><td class="num py">289 тыс.</td><td class="num rs">394 тыс.</td></tr>
   </table></div>
-  <p class="note">Больше 95% «всех токенов» — повторное чтение контекста из кеша на каждом шаге. Поэтому стоимость определяют число шагов и длина контекста, а не объём написанного кода. Ревью: Go — 4,4 млн токенов и 40 вызовов, Python — 3,6 млн токенов и 31 вызов.</p>
-  <p class="note"><b>Почему Go быстрее, но дороже.</b> Go-агент сделал больше шагов (135 против 116) с более длинным контекстом — отсюда больше токенов. Генерация у Go больше лишь на 26%, так что многословность кода объясняет малую часть. Зато шаги были короче (≈32 с против ≈43 с): компилятор и быстрые <code>go build</code>/<code>go test</code> давали мгновенную обратную связь, поэтому по часам Go закончил раньше.</p>
+  <p class="note">Больше 95% «всех токенов» — повторное чтение контекста из кеша на каждом шаге. Поэтому стоимость определяют число шагов и длина контекста, а не объём написанного кода. Ревью: Go — 4,4 млн токенов и 40 вызовов, Python — 3,6 млн и 31 вызов, Rust — 5,0 млн и 41 вызов.</p>
+  <p class="note"><b>Почему Go и Rust быстрее, но дороже.</b> Они сделали больше шагов (135 и 119 против 116) с более длинным контекстом — отсюда больше токенов. Зато шаги были короче (≈32 с у обоих против ≈43 с у Python): компилятор, <code>go test</code> и <code>cargo check</code> давали быструю обратную связь, поэтому по часам они закончили раньше. Rust повторил профиль Go почти один в один.</p>
   <p class="note">* Прайс Claude Opus 5.5 на ноябрь 2026, за 1 млн токенов: вход $4, генерация $20, запись в кеш $5, чтение из кеша $0,20. В среднем выходит ≈ $0,5 за 1 млн токенов.</p>
 </section>
 
 <section id="s5">
   <div class="n">05</div>
   <h2>Объём кода</h2>
-  <p class="lead">Go-реализация примерно на 27% длиннее в коде и на 47% — в тестах. Сказывается многословность языка: явная обработка ошибок и маппинг строк.</p>
-  <div class="legend"><span><i class="dot" style="background:var(--go)"></i>Go</span><span><i class="dot" style="background:var(--py)"></i>Python</span></div>
+  <p class="lead">Go и Rust длиннее Python на 27–31% в коде. Сказывается многословность языков: явная обработка ошибок и маппинг строк.</p>
+  <div class="legend"><span><i class="dot" style="background:var(--go)"></i>Go</span><span><i class="dot" style="background:var(--py)"></i>Python</span><span><i class="dot" style="background:var(--rs)"></i>Rust</span></div>
   <div class="bars" style="max-width:820px">
     <div class="bar"><div class="lbl">Рабочий код</div><div class="track">
       <div class="fill go" style="width:85%"><span>4 350</span></div>
-      <div class="fill py" style="width:66.9%"><span>3 424</span></div></div></div>
+      <div class="fill py" style="width:66.9%"><span>3 424</span></div>
+      <div class="fill rs" style="width:87.5%"><span>4 479</span></div></div></div>
     <div class="bar"><div class="lbl">Тесты</div><div class="track">
       <div class="fill go" style="width:35.6%"><span>1 821</span></div>
-      <div class="fill py" style="width:24.2%"><span>1 241</span></div></div></div>
+      <div class="fill py" style="width:24.2%"><span>1 241</span></div>
+      <div class="fill rs" style="width:33.5%"><span>1 717</span></div></div></div>
     <div class="bar"><div class="lbl">SQL-миграции</div><div class="track">
       <div class="fill go" style="width:3.4%"><span>176</span></div>
-      <div class="fill py" style="width:3.9%"><span>201</span></div></div></div>
+      <div class="fill py" style="width:3.9%"><span>201</span></div>
+      <div class="fill rs" style="width:3.0%"><span>152</span></div></div></div>
   </div>
   <div class="grid" style="margin-top:24px">
-    <div class="card"><h3>Файлов исходников</h3><span class="go">46 .go</span> · <span class="py">58 .py</span></div>
-    <div class="card"><h3>openapi.yaml</h3><span class="go">651 строка, вручную</span> · <span class="py">2 996 строк, генерируется из кода</span></div>
-    <div class="card"><h3>Документация</h3>около 11 тыс. строк Markdown у каждого, основная часть — <code>QUERY_PLANS.md</code></div>
+    <div class="card"><h3>Файлов исходников</h3><span class="go">46 .go</span> · <span class="py">58 .py</span> · <span class="rs">21 .rs</span></div>
+    <div class="card"><h3>openapi.yaml</h3><span class="go">651 строка, вручную</span> · <span class="py">2 996 строк, генерируется из кода</span> · <span class="rs">877 строк, вручную</span></div>
+    <div class="card"><h3>Документация</h3>около 11 тыс. строк Markdown у Go и Python, около 9 тыс. у Rust; основная часть — <code>QUERY_PLANS.md</code></div>
   </div>
-  <p class="note">Считались непустые строки без комментариев. vendor/, .venv, lock-файлы и сгенерированные результаты нагрузочного теста исключены.</p>
+  <p class="note">Считались непустые строки без комментариев. vendor/, .venv, target/, lock-файлы и сгенерированные результаты нагрузочного теста исключены. У Rust тесты частично лежат в тех же файлах (<code>#[cfg(test)]</code>), эти 855 строк отнесены к тестам.</p>
 </section>
 
 <section id="s6">
   <div class="n">06</div>
   <h2>Тесты и проверки</h2>
-  <p class="lead">Оба агента довели всё до зелёного. Ревьюеры перезапустили проверки сами и получили те же результаты.</p>
+  <p class="lead">Все три агента довели всё до зелёного. Ревьюеры перезапустили проверки сами и получили те же результаты.</p>
   <div class="tablewrap"><table>
-    <tr><th>Проверка</th><th class="num">Go</th><th class="num">Python</th></tr>
-    <tr><td>Тесты</td><td class="num">50 функций + 6 подтестов, 10 пакетов ok</td><td class="num">139 passed (70 unit + 69 integration), 8,6 с</td></tr>
-    <tr><td>Покрытие бизнес-логики</td><td class="num">92,5%</td><td class="num win">97,0%</td></tr>
-    <tr><td>Линтеры</td><td class="num">golangci-lint · go vet: 0 замечаний</td><td class="num">ruff + mypy --strict: 0 замечаний</td></tr>
-    <tr><td><code>EXPLAIN</code> на 1 млн книг</td><td class="num ok">40/40 без Seq Scan</td><td class="num ok">40/40 без Seq Scan</td></tr>
-    <tr><td>Повтор у ревьюера</td><td class="num ok">✓ прошло</td><td class="num ok">✓ прошло</td></tr>
-    <tr><td>Итераций до зелёного</td><td class="num">seed ×3, explain ×5, integration ×5</td><td class="num">~7 по тестам + 4 по производительности</td></tr>
+    <tr><th>Проверка</th><th class="num">Go</th><th class="num">Python</th><th class="num">Rust</th></tr>
+    <tr><td>Тесты</td><td class="num">50 функций + 6 подтестов, 10 пакетов ok</td><td class="num">139 passed (70 unit + 69 integration), 8,6 с</td><td class="num">72 passed (57 unit + 14 integration + 1 e2e)</td></tr>
+    <tr><td>Покрытие</td><td class="num">92,5%</td><td class="num win">97,0%</td><td class="num">93,9%</td></tr>
+    <tr><td>Линтеры</td><td class="num">golangci-lint · go vet: 0 замечаний</td><td class="num">ruff + mypy --strict: 0 замечаний</td><td class="num">clippy -D warnings · rustfmt: 0 замечаний</td></tr>
+    <tr><td><code>EXPLAIN</code> на 1 млн книг</td><td class="num ok">40/40 без Seq Scan</td><td class="num ok">40/40 без Seq Scan</td><td class="num ok">29/29 без Seq Scan, плюс generic-планы</td></tr>
+    <tr><td>Повтор у ревьюера</td><td class="num ok">✓ прошло</td><td class="num ok">✓ прошло</td><td class="num ok">✓ прошло</td></tr>
+    <tr><td>Итераций до зелёного</td><td class="num">seed ×3, explain ×5, integration ×5</td><td class="num">~7 по тестам + 4 по производительности</td><td class="num">integration ×5, Docker ×2, план ×4, поиск ×3</td></tr>
   </table></div>
-  <p class="note">Оба агента независимо наступили на один и тот же подводный камень PostgreSQL: <code>pg_get_indexdef</code> для партиционированной таблицы возвращает <code>ON ONLY</code>, и пересобранные после seed индексы оставались пустыми «заглушками». Оба нашли и исправили это сами.</p>
+  <p class="note">Оба агента независимо наступили на один и тот же подводный камень PostgreSQL: <code>pg_get_indexdef</code> для партиционированной таблицы возвращает <code>ON ONLY</code>, и пересобранные после seed индексы оставались пустыми «заглушками». Оба нашли и исправили это сами. Rust-агент обошёл эту ловушку сразу, зато нашёл свою: под нагрузкой generic-план prepared statement делал Seq Scan, а обычный <code>EXPLAIN</code> этого не видит. Он добавил проверку <code>EXPLAIN (GENERIC_PLAN)</code>.</p>
 </section>
 
 <section id="s7">
   <div class="n">07</div>
   <h2>Производительность</h2>
-  <p class="lead">Цифры показательные, но сравнивать их напрямую нельзя: разные профили нагрузки, общий перегруженный хост.</p>
+  <p class="lead">Цифры показательные, но сравнивать их напрямую нельзя: разные профили нагрузки и разная загрузка хоста.</p>
   <div class="two">
     <div class="card"><h3>Seed: около 6 млн строк (книги, авторы, связи, ISBN, аудит)</h3>
       <div class="tablewrap"><table>
-        <tr><th></th><th class="num">Go</th><th class="num">Python</th></tr>
-        <tr><td>COPY</td><td class="num win">9,0 с · 660k rows/s</td><td class="num">15,5 с · 371k rows/s</td></tr>
-        <tr><td>Индексы + FK</td><td class="num">33 с</td><td class="num win">24,1 с</td></tr>
-        <tr><td>VACUUM ANALYZE</td><td class="num">25 с</td><td class="num win">12,1 с</td></tr>
-        <tr><td><b>Итого</b></td><td class="num">~68 с</td><td class="num win">52,0 с*</td></tr>
+        <tr><th></th><th class="num">Go</th><th class="num">Python</th><th class="num">Rust</th></tr>
+        <tr><td>COPY</td><td class="num">9,0 с</td><td class="num">15,5 с</td><td class="num win">8,0 с</td></tr>
+        <tr><td>Индексы + FK</td><td class="num">33 с</td><td class="num">24,1 с</td><td class="num win">9,1 с</td></tr>
+        <tr><td>VACUUM ANALYZE</td><td class="num">25 с</td><td class="num win">12,1 с</td><td class="num">15,6 с</td></tr>
+        <tr><td><b>Итого</b></td><td class="num">~68 с</td><td class="num">52,0 с*</td><td class="num win">33,0 с</td></tr>
       </table></div>
-      <p class="note">* Python — с PGDATA в tmpfs (RAM), Go — на Docker-томе. COPY-загрузка у Go в 1,8 раза быстрее, а остальное время уходит на сам PostgreSQL.</p>
+      <p class="note">* Python — с PGDATA в tmpfs (RAM), Go и Rust — на Docker-томе. Rust-агент строит индексы параллельно по партициям и работал один на машине.</p>
     </div>
     <div class="card"><h3>k6, нагрузка на API</h3>
       <div class="tablewrap"><table>
-        <tr><th></th><th class="num">Go</th><th class="num">Go</th><th class="num">Python</th></tr>
-        <tr><td>Пользователи k6</td><td class="num">8</td><td class="num">32</td><td class="num">64</td></tr>
-        <tr><td>RPS</td><td class="num">321</td><td class="num">365</td><td class="num">560</td></tr>
-        <tr><td>p50</td><td class="num">5,1 мс</td><td class="num">13,4 мс</td><td class="num">95 мс</td></tr>
-        <tr><td>p95</td><td class="num">129 мс</td><td class="num">508 мс</td><td class="num">266 мс</td></tr>
-        <tr><td>p99</td><td class="num">443 мс</td><td class="num">1 526 мс</td><td class="num">412 мс</td></tr>
-        <tr><td>Ошибки</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td></tr>
+        <tr><th></th><th class="num">Go</th><th class="num">Go</th><th class="num">Python</th><th class="num">Rust</th></tr>
+        <tr><td>Пользователи k6</td><td class="num">8</td><td class="num">32</td><td class="num">64</td><td class="num">32</td></tr>
+        <tr><td>RPS</td><td class="num">321</td><td class="num">365</td><td class="num">560</td><td class="num win">658</td></tr>
+        <tr><td>p50</td><td class="num win">5,1 мс</td><td class="num">13,4 мс</td><td class="num">95 мс</td><td class="num">36 мс</td></tr>
+        <tr><td>p95</td><td class="num">129 мс</td><td class="num">508 мс</td><td class="num">266 мс</td><td class="num win">160 мс</td></tr>
+        <tr><td>p99</td><td class="num">443 мс</td><td class="num">1 526 мс</td><td class="num">412 мс</td><td class="num win">260 мс</td></tr>
+        <tr><td>Ошибки</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td></tr>
       </table></div>
-      <p class="note">Во время прогона Go средняя загрузка хоста была 20–190, в смеси больше тяжёлого поиска. Python гонял тест на БД в RAM. Медиана у Go ниже, но хвосты (p95/p99) в обоих случаях упираются в поиск по <code>/search</code> и в CPU.</p>
+      <p class="note">Во время прогона Go средняя загрузка хоста была 20–190, в смеси больше тяжёлого поиска. Python гонял тест на БД в RAM. Rust работал один на машине; агент поднял RPS с 215 до 658, переписав поиск. Хвосты (p95/p99) у всех упираются в <code>/search</code> и в CPU.</p>
     </div>
   </div>
 </section>
@@ -238,9 +242,9 @@ nav button{border:1px solid var(--line);background:var(--surface);color:var(--in
   <h2>Эксплуатация</h2>
   <div class="grid" style="margin-top:12px">
     <div class="card kpi"><div class="l">Docker-образ приложения</div>
-      <div class="vs"><span class="v go">16 МБ</span><span class="muted">vs</span><span class="v py">255 МБ</span></div>
-      <div class="l">distroless static против python-slim + venv: разница в 16 раз</div></div>
-    <div class="card"><h3>Общее у обоих</h3><ul>
+      <div class="vs"><span class="v go">16</span><span class="v rs">40</span><span class="v py">255</span></div>
+      <div class="l">МБ: Go · Rust · Python. distroless static и distroless cc против python-slim + venv</div></div>
+    <div class="card"><h3>Общее у всех</h3><ul>
       <li>Multi-stage, non-root, healthcheck</li>
       <li>Отдельные сервисы migrate и seed в compose</li>
       <li><code>/healthz</code>, <code>/readyz</code>, <code>/metrics</code>, JSON-логи</li>
@@ -250,16 +254,39 @@ nav button{border:1px solid var(--line);background:var(--surface);color:var(--in
       <li><span class="go">Go</span>: vendor/ для офлайн-сборки, линтер в Docker</li>
       <li><span class="py">Python</span>: OpenAPI генерируется из кода, тест ловит расхождения</li>
       <li><span class="py">Python</span>: <code>make test/lint</code> требуют uv на хосте</li>
+      <li><span class="rs">Rust</span>: тесты в контейнере <code>rust:1.100</code>, cargo на хосте не нужен</li>
     </ul></div>
     <div class="card"><h3>DevEx vs Security</h3><ul>
       <li><span class="py">Python</span>: интерпретатор в контейнере позволяет делать hotfix, дампить данные или запускать скрипты без пересборки, но это риск безопасности: лишняя поверхность атаки</li>
-      <li><span class="go">Go (distroless)</span>: максимальная безопасность и минимальный размер, нет даже shell, но любое вмешательство требует пересборки и перевыката образа</li>
+      <li><span class="go">Go</span> и <span class="rs">Rust</span> (distroless): максимальная безопасность и минимальный размер, нет даже shell, но любое вмешательство требует пересборки и перевыката образа</li>
     </ul></div>
   </div>
 </section>
 
-<section id="s9" class="mini">
+<section id="s9">
   <div class="n">09</div>
+  <h2><span class="rs">Rust</span>: третий участник</h2>
+  <p class="lead">Тот же промт и та же модель. Лучшая оценка ревьюера и самый быстрый агент, но не без багов.</p>
+  <div class="grid">
+    <div class="card kpi"><div class="l">Оценка ревьюера</div><div class="v rs">8,35</div><div class="l">Go 8,0 · Python 7,8</div>
+      <div class="l" style="margin-top:14px">Время агента</div><div class="v rs">63,9 мин</div><div class="l">Go 73,2 · Python 83,8</div></div>
+    <div class="card"><h3>Что получилось</h3><ul>
+      <li>Тесты 72/72, покрытие 93,9%, clippy и rustfmt без замечаний</li>
+      <li>Seed 33 с; k6: 658 RPS, p99 260 мс</li>
+      <li>Образ 40 МБ, distroless, non-root</li>
+      <li>Оценки по критериям: ТЗ, тесты, код и OpenAPI — 9; корректность и эксплуатация — 8; масштабируемость БД — 7, как у Go</li>
+    </ul></div>
+    <div class="card"><h3>Что нашёл ревьюер</h3><ul>
+      <li><span class="sev">500</span> при постраничном обходе авторов с датой рождения до н. э.: курсор хранит «-0427-01-01», PostgreSQL не принимает это как date</li>
+      <li>Редкое значение фильтра вместе с сортировкой проходит весь индекс: около 1 с на 1 млн книг, на 10 млрд — таймаут</li>
+      <li>64 партиции и FK в <code>book_authors</code> — слабо для 10 млрд и будущего шардинга</li>
+    </ul></div>
+  </div>
+  <p class="note">Rust-агент запущен 26 ноября, через 9 дней после Go и Python, и работал один на машине — сравнение по времени и нагрузке в его пользу. n = 1. Подробности: <code>rust_impl/</code>, <code>experiment/rust_report.md</code>, <code>experiment/review_rust.md</code>.</p>
+</section>
+
+<section id="s10" class="mini">
+  <div class="n">10</div>
   <h2>Мини-задачи: условия и результаты</h2>
   <p class="lead">Три небольших скрипта, одинаковые ТЗ и данные для обоих языков. Обе реализации каждой задачи прошли скрытую проверку. Различаются время и цена: Python — <b class="py">31 мин и 6,6 млн токенов</b>, Go — <b class="go">47 мин и 9,8 млн</b>.</p>
   <div class="tablewrap"><table>
@@ -272,11 +299,11 @@ nav button{border:1px solid var(--line);background:var(--surface);color:var(--in
       <td class="num"><span class="py">11,9</span> / <span class="go">13,7</span></td><td class="num"><span class="py">2,30</span> / <span class="go">2,30</span></td><td class="num"><span class="py">2,20</span> / <span class="go">2,43</span></td><td class="num"><span class="py">477</span> / <span class="go">707</span></td><td class="num">F1 <span class="py">0,983</span> / <b class="go">0,992</b></td></tr>
     <tr><td><b>Итого</b></td><td class="num"><b><span class="py">31,3</span> / <span class="go">47,3</span></b></td><td class="num"><b><span class="py">6,64</span> / <span class="go">9,83</span></b></td><td class="num"><b><span class="py">6,05</span> / <span class="go">7,80</span></b></td><td class="num"><b><span class="py">2 271</span> / <span class="go">3 467</span></b></td><td class="num">Go-код длиннее на 53%</td></tr>
   </table></div>
-  <p class="note">В ячейках: <span class="py">Python</span> / <span class="go">Go</span>. Скрытые проверки агенты не видели: эталонный <code>summary.json</code> (75 значений), 11 проверок писем через API Mailpit, 120 размеченных фраз (60 мат / 60 ловушек). Стоимость — по прайсу Claude Opus 5.5, как на слайде «Скорость и стоимость».</p>
+  <p class="note">В ячейках: <span class="py">Python</span> / <span class="go">Go</span>. Скрытые проверки агенты не видели: эталонный <code>summary.json</code> (75 значений), 11 проверок писем через API Mailpit, 120 размеченных фраз (60 мат / 60 ловушек). Стоимость — по прайсу Claude Opus 5.5, как на слайде «Скорость и стоимость». Мини-задачи решали только Go и Python.</p>
 </section>
 
-<section id="s10">
-  <div class="n">10</div>
+<section id="s11">
+  <div class="n">11</div>
   <h2>Мини-задачи: что повлияло</h2>
   <p class="lead">Разницу делает не язык как таковой, а готовые библиотеки под задачу.</p>
   <div class="two">
@@ -293,8 +320,8 @@ nav button{border:1px solid var(--line);background:var(--surface);color:var(--in
   </div>
 </section>
 
-<section id="s11">
-  <div class="n">11</div>
+<section id="s12">
+  <div class="n">12</div>
   <h2>Что говорят исследования: <span class="py">за Python</span></h2>
   <p class="lead">Почему AI-агенту в среднем проще писать на Python: публичные данные 2022–2026 годов.</p>
   <div class="two">
@@ -313,8 +340,8 @@ nav button{border:1px solid var(--line);background:var(--surface);color:var(--in
   </div>
 </section>
 
-<section id="s12">
-  <div class="n">12</div>
+<section id="s13">
+  <div class="n">13</div>
   <h2>Что говорят исследования: <span class="go">за Go</span></h2>
   <p class="lead">Где Python уступает: ошибки, которые компилятор Go ловит до запуска, и проблемы экосистемы.</p>
   <div class="two">
@@ -334,23 +361,23 @@ nav button{border:1px solid var(--line);background:var(--surface);color:var(--in
   <p class="note">Слабые места Go для агентов: многословность (больше кода и токенов) и гонки данных. 41% гонок в Go-коде Uber — захват переменной по ссылке в горутине, компилятор их не ловит (<a href="https://arxiv.org/abs/2204.00764" target="_blank" rel="noopener">PLDI 2022</a>).</p>
 </section>
 
-<section id="s13">
-  <div class="n">13</div>
+<section id="s14">
+  <div class="n">14</div>
   <h2>Сверка с нашим экспериментом</h2>
   <p class="lead">Часть выводов исследований подтвердилась, часть — нет: сильная модель 2026 года сокращает разрыв.</p>
   <div class="tablewrap"><table>
     <tr><th>Тезис из исследований</th><th>Что увидели мы</th><th class="num">Совпало?</th></tr>
     <tr><td>На Python агент тратит меньше токенов</td><td>Python: 21,6 млн, Go: 30,9 млн (+43%)</td><td class="num ok">да</td></tr>
     <tr><td>На Go код многословнее</td><td>Код Go на 27% длиннее, тесты — на 47%</td><td class="num ok">да</td></tr>
-    <tr><td>На Go агенты справляются хуже (Multi-SWE-bench)</td><td>Оценки 8,0 (Go) и 7,8 (Python), Go закончил на 10 мин раньше</td><td class="num sev">нет*</td></tr>
-    <tr><td>Типы ловят ошибки до запуска</td><td>В Python ревьюер нашёл ошибки 500 на граничном вводе. В Go — логическую ошибку лимита курсора, которую типы не ловят</td><td class="num">частично</td></tr>
-    <tr><td>У Go проще эксплуатация</td><td>Образ 16 МБ против 255 МБ, зависимости собраны офлайн из vendor/</td><td class="num ok">да</td></tr>
+    <tr><td>На Go и Rust агенты справляются хуже (Multi-SWE-bench)</td><td>Оценки: Rust 8,35, Go 8,0, Python 7,8. Rust и Go закончили раньше Python</td><td class="num sev">нет*</td></tr>
+    <tr><td>Типы ловят ошибки до запуска</td><td>Ошибки 500 на граничном вводе ревьюеры нашли и у Python, и у Rust (даты до н. э.). В Go — логическую ошибку лимита курсора. Типы такие ошибки не ловят</td><td class="num">частично</td></tr>
+    <tr><td>У Go проще эксплуатация</td><td>Образы: Go 16 МБ, Rust 40 МБ, Python 255 МБ. Go собирается офлайн из vendor/</td><td class="num ok">да</td></tr>
   </table></div>
   <p class="note">* Бенчмарки 2024–25 годов мерили более слабые модели на чужих репозиториях. У нас новый проект с нуля, одна модель Opus 5.5 и n = 1, поэтому вывод предварительный. Полный список источников — <code>experiment/RESEARCH.md</code>.</p>
 </section>
 
-<section id="s14">
-  <div class="n">14</div>
+<section id="s15">
+  <div class="n">15</div>
   <h2>Почему <span class="py">Python</span> удобнее для MVP</h2>
   <p class="lead">На этапе MVP скорость изменений и простота отладки важнее размера образа и задержек. Здесь Python выигрывает.</p>
   <div class="grid">
@@ -367,23 +394,23 @@ nav button{border:1px solid var(--line);background:var(--surface);color:var(--in
     <div class="card"><h3>Проще найти людей и помощь</h3>
       Python входит в двойку самых популярных языков на GitHub (+850 тыс. контрибьюторов за год). На него больше обучающих данных у моделей, поэтому агенты увереннее пишут на нём новый код.</div>
   </div>
-  <p class="note"><b>Когда переходить на Go:</b> MVP подтвердился и упёрся в производительность, память, размер образа или число сервисов. Тогда горячие пути переписывают на Go, а Python остаётся для админки, скриптов и аналитики.</p>
+  <p class="note"><b>Когда переходить на Go или Rust:</b> MVP подтвердился и упёрся в производительность, память, размер образа или число сервисов. Тогда горячие пути переписывают на компилируемый язык, а Python остаётся для админки, скриптов и аналитики.</p>
 </section>
 
-<section id="s15">
-  <div class="n">15</div>
+<section id="s16">
+  <div class="n">16</div>
   <h2>Выводы</h2>
   <div class="grid" style="margin-top:12px">
-    <div class="card"><h3>1. Язык почти не влияет на результат</h3>Итоговые оценки 8,0 и 7,8, архитектура совпадает. Решающий фактор — модель и ТЗ, а не язык.</div>
-    <div class="card"><h3>2. Go быстрее, Python дешевле</h3>Большой сервис: Go закончил на 13% быстрее, Python потратил на 30% меньше токенов. Код на Go на 27% длиннее, в мини-задачах — на 53%.</div>
+    <div class="card"><h3>1. Язык почти не влияет на результат</h3>Итоговые оценки 8,35 (Rust), 8,0 (Go) и 7,8 (Python), архитектура совпадает. Решающий фактор — модель и ТЗ, а не язык.</div>
+    <div class="card"><h3>2. Компилируемые быстрее, Python дешевле</h3>Большой сервис: Go закончил на 13% быстрее Python, Rust — на 24%. Python потратил на 30% меньше токенов. Код на Go и Rust длиннее на 27–31%, в мини-задачах Go — на 53%.</div>
     <div class="card"><h3>2а. Мелкие скрипты — за Python</h3>В задачах с готовыми библиотеками (Excel, графики) Python в 3 раза быстрее и дешевле при одинаковом качестве. В сервисных задачах (рассылка) разницы нет, а в regexp-фильтре Go даже чуть точнее.</div>
-    <div class="card"><h3>3. У Go — артефакт эксплуатации</h3>Образ 16 МБ против 255 МБ, COPY-загрузка seed в 1,8 раза быстрее, ниже медианная задержка. Это плюсы рантайма, а не агента.</div>
+    <div class="card"><h3>3. У Go и Rust — плюсы эксплуатации</h3>Образы 16 и 40 МБ против 255 МБ. У Go ниже медианная задержка, у Rust лучшие seed (33 с) и RPS (658). Это плюсы рантайма, а не агента.</div>
     <div class="card"><h3>4. Python лучше в тестах и проверке типов</h3>Покрытие 97%, mypy --strict, OpenAPI генерируется из кода с тестом на расхождения.</div>
-    <div class="card"><h3>5. Ревью обязательно</h3>Оба агента отчитались «всё зелёное», но ревьюеры за 5–6 минут нашли воспроизводимые баги, приводящие к 500/400.</div>
-    <div class="card"><h3>6. ТЗ на 10 млрд — с оговорками</h3>Поиск средствами одного PostgreSQL на таком объёме не масштабируется. Оба агента вынесли решение в документацию.</div>
-    <div class="card"><h3>7. Critical mass — за Go</h3>На этапе MVP Python выигрывает за счёт скорости и экосистемы. При достижении critical mass (большие команды, сложные инварианты) строгая типизация и компилятор Go начинают окупаться, предотвращая runtime-ошибки и ускоряя рефакторинг.</div>
+    <div class="card"><h3>5. Ревью обязательно</h3>Все три агента отчитались «всё зелёное», но ревьюеры за 5–7 минут нашли воспроизводимые баги, приводящие к 500/400.</div>
+    <div class="card"><h3>6. ТЗ на 10 млрд — с оговорками</h3>Поиск средствами одного PostgreSQL на таком объёме не масштабируется. Все три агента вынесли решение в документацию.</div>
+    <div class="card"><h3>7. Critical mass — за Go и Rust</h3>На этапе MVP Python выигрывает за счёт скорости и экосистемы. При достижении critical mass (большие команды, сложные инварианты) строгая типизация и компилятор Go и Rust начинают окупаться, предотвращая runtime-ошибки и ускоряя рефакторинг.</div>
   </div>
-  <p class="note">Артефакты: <code>go_impl/</code>, <code>python_impl/</code>, журнал эксперимента <code>experiment/LOG.md</code>, метрики <code>experiment/*_metrics.json</code>, ревью <code>experiment/review_*.md</code>, публичные исследования <code>experiment/RESEARCH.md</code>.</p>
+  <p class="note">Артефакты: <code>go_impl/</code>, <code>python_impl/</code>, <code>rust_impl/</code>, журнал эксперимента <code>experiment/LOG.md</code>, метрики <code>experiment/*_metrics.json</code>, ревью <code>experiment/review_*.md</code>, публичные исследования <code>experiment/RESEARCH.md</code>.</p>
 </section>
 
 <nav><button id="prev" aria-label="Назад">↑</button><button id="next" aria-label="Вперёд">↓</button></nav>
